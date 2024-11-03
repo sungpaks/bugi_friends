@@ -244,7 +244,7 @@ if (!window.Bugi) {
 
       // 애니메이션 중지
       cancelAnimationFrame(this.walkRAF);
-      console.log('Bugi removed');
+      // console.log('Bugi removed');
     }
   }
 
