@@ -1,0 +1,10 @@
+const bugi = document.createElement('div');
+bugi.id = 'bugi';
+bugi.className = 'bugi';
+bugi.style.width = '50vw';
+bugi.style.height = '50vh';
+bugi.style.position = 'fixed';
+bugi.style.top = '25vh';
+bugi.style.left = '25vw';
+bugi.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+document.body.appendChild(bugi);

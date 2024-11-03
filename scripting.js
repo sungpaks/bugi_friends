@@ -10,6 +10,19 @@ chrome.action.onClicked.addListener(async (tab) => {
     // Next state will always be the opposite
     const nextState = prevState === 'ON' ? 'OFF' : 'ON';
 
+    if (nextState === 'OFF') {
+      // Remove the Bugi element
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        function: () => {
+          const bugiToBeRemoved = document.getElementById('bugi');
+          if (bugiToBeRemoved) {
+            bugiToBeRemoved.remove();
+          }
+        },
+      });
+    }
+
     // Set the action badge to the next state
     await chrome.action.setBadgeText({
       tabId: tab.id,
@@ -20,8 +33,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   chrome.scripting
     .executeScript({
       target: { tabId: tab.id },
-      // files: ['bugi.js'],
-      function: mountBugi,
+      files: ['bugi.js'],
     })
     .then(() => {
       console.log('Bugi injected');
@@ -30,17 +42,3 @@ chrome.action.onClicked.addListener(async (tab) => {
       console.error('Failed to inject bugi:', error);
     });
 });
-
-function mountBugi() {
-  console.log('bugibugi');
-  const bugi = document.createElement('div');
-  bugi.id = 'bugi';
-  bugi.className = 'bugi';
-  bugi.style.width = '50vw';
-  bugi.style.height = '50vh';
-  bugi.style.position = 'fixed';
-  bugi.style.top = '25vh';
-  bugi.style.left = '25vw';
-  bugi.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-  document.body.appendChild(bugi);
-}
