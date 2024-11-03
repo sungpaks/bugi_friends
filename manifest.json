@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Bugi",
+  "version": "1.0",
+  "permissions": ["activeTab", "scripting"],
+  "content_scripts": [],
+  "action": {
+    "default_icon": "images/logo.png"
+  },
+  "background": {
+    "service_worker": "scripting.js"
+  }
+}
