@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bugi",
-  "version": "1.0",
+  "version": "1.0.0",
   "permissions": ["activeTab", "scripting"],
   "content_scripts": [],
   "action": {
@@ -9,5 +9,17 @@
   },
   "background": {
     "service_worker": "scripting.js"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "sitting.png",
+        "walking00.png",
+        "walking01.png",
+        "walking02.png",
+        "standing.png"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

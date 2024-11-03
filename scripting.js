@@ -30,6 +30,10 @@ chrome.action.onClicked.addListener(async (tab) => {
     });
   }
 
+  chrome.scripting.insertCSS({
+    target: { tabId: tab.id },
+    files: ['bugi.css'],
+  });
   chrome.scripting
     .executeScript({
       target: { tabId: tab.id },
