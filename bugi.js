@@ -1,201 +1,254 @@
-const sitting = chrome.runtime.getURL('./sitting.png');
-const walking01 = chrome.runtime.getURL('./walking00.png');
-const walking02 = chrome.runtime.getURL('./walking01.png');
-const walking03 = chrome.runtime.getURL('./walking02.png');
-const standing = chrome.runtime.getURL('./standing.png');
-
-class Bugi {
-  constructor() {
-    this.isDragging = false;
-    this.isWalking = false;
-    this.tooltipVisible = false;
-    this.emotions = [
-      '( ´ ▽ ` )',
-      '(´･ω･`)',
-      '(´｡• ω •｡`)',
-      '(っ˘ڡ˘ς)',
-      '(｡•́︿•̀｡)',
-      '(´～｀*)｡｡oO',
-    ];
-    this.emotionIndex = Math.floor(Math.random() * this.emotions.length);
-    this.position = { top: 200, left: 100 };
-    this.initMargin = 0;
-    this.startTimestamp = 0;
-
-    this.createElements();
-    this.addEventListeners();
-    this.setupAutoWalk();
-    this.setupTooltip();
-  }
-
-  createElements() {
-    // Create container
-    this.container = document.createElement('div');
-    this.container.className = 'bugi';
-    this.container.style.position = 'fixed';
-    this.container.style.left = `${this.position.left}px`;
-    this.container.style.top = `${this.position.top}px`;
-
-    // Create image element
-    this.img = document.createElement('img');
-    this.img.src = sitting;
-    this.img.style.position = 'absolute';
-    this.container.appendChild(this.img);
-
-    // Create tooltip
-    this.tooltip = document.createElement('div');
-    this.tooltip.className = 'tooltip';
-    this.tooltip.style.position = 'fixed';
-    this.tooltip.style.visibility = 'hidden';
-    this.tooltip.style.left = `${this.position.left - 35}px`;
-    this.tooltip.style.top = `${this.position.top}px`;
-    this.tooltip.innerText = this.emotions[this.emotionIndex];
-    this.container.appendChild(this.tooltip);
-
-    document.body.appendChild(this.container);
-  }
-
-  addEventListeners() {
-    this.container.addEventListener('mousedown', (e) =>
-      this.handleMouseDown(e),
-    );
-    document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-    document.addEventListener('mouseup', () => this.handleMouseUp());
-    this.container.addEventListener('click', () => this.startWalk());
-    this.container.addEventListener('mouseenter', () => this.showTooltip());
-    this.container.addEventListener('mouseleave', () => this.hideTooltip());
-  }
-
-  handleMouseDown(e) {
-    this.isDragging = true;
-    this.img.src = standing;
-    this.shiftX = e.clientX - this.container.offsetLeft;
-    this.shiftY = e.clientY - this.container.offsetTop;
-    this.updateEmotion();
-  }
-
-  handleMouseMove(e) {
-    if (!this.isDragging) return;
-
-    this.position.left = e.clientX - this.shiftX;
-    this.position.top = e.clientY - this.shiftY;
-    this.container.style.left = `${this.position.left}px`;
-    this.container.style.top = `${this.position.top}px`;
-  }
-
-  handleMouseUp() {
-    if (this.isDragging) {
+if (!window.Bugi) {
+  class Bugi {
+    constructor() {
       this.isDragging = false;
-      this.img.src = sitting;
+      this.isWalking = false;
+      this.tooltipVisible = false;
+      this.emotions = [
+        '( ´ ▽ ` )',
+        '(´･ω･`)',
+        '(´｡• ω •｡`)',
+        '(っ˘ڡ˘ς)',
+        '(｡•́︿•̀｡)',
+        '(´～｀*)｡｡oO',
+      ];
+      this.emotionIndex = Math.floor(Math.random() * this.emotions.length);
+      this.position = { top: 50, left: 50 };
+      this.initMargin = 0;
+      this.startTimestamp = 0;
+      this.currentPose = 'sitting';
+
+      this.autoWalkInterval = null;
+      this.tooltipInterval = null;
+
+      this.createElements();
+      this.addEventListeners();
+      this.setupAutoWalk();
+      this.setupTooltip();
     }
-  }
 
-  showTooltip() {
-    this.tooltip.style.visibility = 'visible';
-    this.updateEmotion();
-  }
+    assets = {
+      sitting: chrome.runtime.getURL('images/bugi/sitting.png'),
+      standing: chrome.runtime.getURL('images/bugi/standing.png'),
+      walking01: chrome.runtime.getURL('images/bugi/walking00.png'),
+      walking02: chrome.runtime.getURL('images/bugi/walking01.png'),
+      walking03: chrome.runtime.getURL('images/bugi/walking02.png'),
+    };
 
-  hideTooltip() {
-    this.tooltip.style.visibility = 'hidden';
-  }
+    createElements() {
+      // Create image element
+      this.img = document.createElement('img');
+      this.img.id = 'bugi';
+      this.img.className = 'bugi';
+      this.img.src = this.assets.sitting;
+      this.img.style.left = `${this.position.left}px`;
+      this.img.style.top = `${this.position.top}px`;
+      this.img.draggable = false;
 
-  updateEmotion() {
-    this.emotionIndex = Math.floor(Math.random() * this.emotions.length);
-    this.tooltip.innerText = this.isDragging
-      ? '(o_O)'
-      : this.emotions[this.emotionIndex];
-  }
+      // Create tooltip
+      this.tooltip = document.createElement('div');
+      this.tooltip.className = 'tooltip';
+      this.tooltip.style.position = 'fixed';
+      this.tooltip.style.left = `${this.position.left - 35}px`;
+      this.tooltip.style.top = `${this.position.top}px`;
+      this.tooltip.style.width = '105px';
+      this.tooltip.style.height = '40px';
+      this.tooltip.style.whiteSpace = 'nowrap';
 
-  setupTooltip() {
-    setInterval(() => {
-      if (!this.tooltipVisible && Math.random() < 0.1 && !this.isDragging) {
-        this.showTooltip();
-        setTimeout(() => this.hideTooltip(), 2000);
+      document.body.appendChild(this.img);
+      document.body.appendChild(this.tooltip);
+
+      this.tooltipText = document.createElement('div');
+      this.tooltipText.className = 'tooltip-text';
+      this.tooltipText.style = `
+      width: 100%;
+      height: 100%;
+      visibility: ${this.tooltipVisible ? 'visible' : 'hidden'};
+      padding-left: 0;
+      padding-right: 0;
+    `;
+      this.tooltipText.innerText = this.emotions[this.emotionIndex];
+      this.tooltip.appendChild(this.tooltipText);
+    }
+
+    addEventListeners() {
+      this.img.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+      document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+      document.addEventListener('mouseup', () => this.handleMouseUp());
+      this.img.addEventListener('click', () => this.startWalk());
+      this.img.addEventListener('mouseenter', () => this.showTooltip());
+      this.img.addEventListener('mouseleave', () => this.hideTooltip());
+    }
+
+    handleMouseDown(e) {
+      this.isDragging = true;
+      this.img.src = this.assets.standing;
+      this.shiftX = e.clientX - this.img.offsetLeft;
+      this.shiftY = e.clientY - this.img.offsetTop;
+      this.updateEmotion();
+    }
+
+    handleMouseMove(e) {
+      if (!this.isDragging) return;
+
+      this.position.left = e.clientX - this.shiftX;
+      this.position.top = e.clientY - this.shiftY;
+      this.updatePosition();
+    }
+
+    handleMouseUp() {
+      if (this.isDragging) {
+        this.isDragging = false;
+        this.img.src = this.assets.sitting;
+        this.updateEmotion();
       }
-    }, 2000);
-  }
+    }
 
-  setupAutoWalk() {
-    setInterval(() => {
-      if (!this.isWalking && !this.isDragging && Math.random() < 0.1) {
-        this.startWalk();
+    showTooltip() {
+      this.tooltipVisible = true;
+      this.tooltipText.style.visibility = 'visible';
+      // this.tooltipText.innerText = this.emotions[this.emotionIndex];
+    }
+
+    hideTooltip() {
+      this.tooltipVisible = false;
+      this.tooltipText.style.visibility = 'hidden';
+    }
+
+    updateEmotion() {
+      this.tooltipText.innerText = this.isDragging
+        ? '(o_O)'
+        : this.emotions[this.emotionIndex];
+    }
+
+    setupTooltip() {
+      this.tooltipInterval = setInterval(() => {
+        if (!this.tooltipVisible && Math.random() < 0.1 && !this.isDragging) {
+          this.showTooltip();
+          this.getNewRandomEmotion();
+          setTimeout(() => this.hideTooltip(), 2000);
+        }
+      }, 2000);
+    }
+
+    getNewRandomEmotion() {
+      this.emotionIndex = Math.floor(Math.random() * this.emotions.length);
+    }
+
+    setupAutoWalk() {
+      this.autoWalkInterval = setInterval(() => {
+        if (!this.isWalking && !this.isDragging && Math.random() < 0.1) {
+          this.startWalk();
+        }
+      }, 2000);
+    }
+
+    startWalk() {
+      if (this.isWalking) return;
+
+      this.getNewRandomEmotion();
+      this.isWalking = true;
+      const targetX =
+        Math.random() *
+        (window.innerWidth - this.img.offsetWidth - this.initMargin);
+      const targetY =
+        Math.random() *
+        (window.innerHeight - this.img.offsetHeight - this.initMargin);
+      this.setPose('walking');
+      this.isFlipped = this.position.left - targetX > 0;
+
+      this.walkRAF = requestAnimationFrame((timestamp) =>
+        this.animateWalk(timestamp, 0, targetX, targetY),
+      );
+    }
+
+    animateWalk(timestamp, count, targetX, targetY) {
+      if (!this.startTimestamp) this.startTimestamp = timestamp;
+      const elapsed = timestamp - this.startTimestamp;
+
+      if (elapsed > 5000) {
+        this.stopWalk();
+        return;
       }
-    }, 2000);
-  }
 
-  startWalk() {
-    if (this.isWalking) return;
+      if (count % 30 === 0) this.switchPose();
+      if (count % 10 === 0) this.moveTowardsTarget(targetX, targetY);
 
-    this.isWalking = true;
-    const targetX =
-      Math.random() *
-      (window.innerWidth - this.container.offsetWidth - this.initMargin);
-    const targetY =
-      Math.random() *
-      (window.innerHeight - this.container.offsetHeight - this.initMargin);
-    this.setPose('walking');
-    this.isFlipped = this.position.left - targetX > 0;
-
-    this.walkInterval = requestAnimationFrame((timestamp) =>
-      this.animateWalk(timestamp, 0, targetX, targetY),
-    );
-  }
-
-  animateWalk(timestamp, count, targetX, targetY) {
-    if (!this.startTimestamp) this.startTimestamp = timestamp;
-    const elapsed = timestamp - this.startTimestamp;
-
-    if (elapsed > 5000) {
-      this.stopWalk();
-      return;
+      this.walkRAF = requestAnimationFrame((newTimestamp) =>
+        this.animateWalk(newTimestamp, count + 1, targetX, targetY),
+      );
     }
 
-    if (count % 30 === 0) this.switchPose();
-    if (count % 10 === 0) this.moveTowardsTarget(targetX, targetY);
+    moveTowardsTarget(targetX, targetY) {
+      const dx = targetX - this.position.left;
+      const dy = targetY - this.position.top;
 
-    this.walkInterval = requestAnimationFrame((newTimestamp) =>
-      this.animateWalk(newTimestamp, count + 1, targetX, targetY),
-    );
-  }
+      this.position.left += dx / 100;
+      this.position.top += dy / 100;
+      this.updatePosition();
 
-  moveTowardsTarget(targetX, targetY) {
-    const dx = targetX - this.position.left;
-    const dy = targetY - this.position.top;
+      if (dx < 0) this.img.classList.add('flipped');
+      else this.img.classList.remove('flipped');
+    }
 
-    this.position.left += dx / 100;
-    this.position.top += dy / 100;
-    this.container.style.left = `${this.position.left}px`;
-    this.container.style.top = `${this.position.top}px`;
+    updatePosition() {
+      // img와 tooltip의 위치를 함께 업데이트
+      this.img.style.left = `${this.position.left}px`;
+      this.img.style.top = `${this.position.top}px`;
+      this.tooltip.style.left = `${this.position.left - 35}px`;
+      this.tooltip.style.top = `${this.position.top}px`;
+    }
 
-    if (dx < 0) this.container.classList.add('flipped');
-    else this.container.classList.remove('flipped');
-  }
+    switchPose() {
+      if (this.img.src === this.assets.walking01)
+        this.img.src = this.assets.walking02;
+      else if (this.img.src === this.assets.walking02)
+        this.img.src = this.assets.walking03;
+      else this.img.src = this.assets.walking01;
+    }
 
-  switchPose() {
-    if (this.img.src === walking01) this.img.src = walking02;
-    else if (this.img.src === walking02) this.img.src = walking03;
-    else this.img.src = walking01;
-  }
+    stopWalk() {
+      this.isWalking = false;
+      this.img.src = this.assets.sitting;
+      this.startTimestamp = 0;
+      cancelAnimationFrame(this.walkRAF);
+    }
 
-  stopWalk() {
-    this.isWalking = false;
-    this.img.src = sitting;
-    this.startTimestamp = 0;
-    cancelAnimationFrame(this.walkInterval);
-  }
+    setPose(pose) {
+      switch (pose) {
+        case 'walking':
+          this.img.src = this.assets.walking01;
+          break;
+        case 'sitting':
+        default:
+          this.img.src = this.assets.sitting;
+          break;
+      }
+    }
 
-  setPose(pose) {
-    switch (pose) {
-      case 'walking':
-        this.img.src = walking01;
-        break;
-      case 'sitting':
-      default:
-        this.img.src = sitting;
-        break;
+    _destroy() {
+      if (this.img) this.img.remove();
+      if (this.tooltip) this.tooltip.remove();
+
+      // 이벤트 리스너 제거
+      document.removeEventListener('mousemove', this.handleMouseMove);
+      document.removeEventListener('mouseup', this.handleMouseUp);
+      this.img.removeEventListener('mousedown', this.handleMouseDown);
+      this.img.removeEventListener('click', this.startWalk);
+      this.img.removeEventListener('mouseenter', this.showTooltip);
+      this.img.removeEventListener('mouseleave', this.hideTooltip);
+
+      // interval 제거
+      clearInterval(this.autoWalkInterval);
+      clearInterval(this.tooltipInterval);
+
+      // 애니메이션 중지
+      cancelAnimationFrame(this.walkRAF);
+      console.log('Bugi removed');
     }
   }
+
+  window.Bugi = Bugi;
 }
 
-// 인스턴스 생성
-const bugi = new Bugi();
+window.bugi = new window.Bugi();

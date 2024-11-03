@@ -1,20 +1,26 @@
 .bugi {
     position: fixed;
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     text-align: center;
     align-content: center;
-    background-color: red;
+    background-color: transparent;
     border: none;
     cursor: pointer;
     user-select: none;
     z-index: 9999;
 }
 
+.bugi.flipped {
+    transform: scaleX(-1);
+}
+
 .tooltip {
     position: relative;
     display: inline-block;
-    z-index: 99;
+    z-index: 9998;
+    visibility: visible;
+    ;
 }
 
 .tooltip .tooltip-text {
@@ -53,7 +59,7 @@
 .tooltip .tooltip-text::after {
     content: "";
     position: absolute;
-    bottom: 99%;
+    bottom: 98%;
     left: 50%;
     margin-left: -10px;
     border-width: 10px;

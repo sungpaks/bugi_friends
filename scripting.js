@@ -2,8 +2,6 @@ const extensions = 'https://developer.chrome.com/docs/extensions';
 const webstore = 'https://developer.chrome.com/docs/webstore';
 
 chrome.action.onClicked.addListener(async (tab) => {
-  console.log("I'm clicked");
-
   if (tab.url.startsWith(extensions) || tab.url.startsWith(webstore)) {
     // Retrieve the action badge to check if the extension is 'ON' or 'OFF'
     const prevState = await chrome.action.getBadgeText({ tabId: tab.id });
@@ -15,12 +13,26 @@ chrome.action.onClicked.addListener(async (tab) => {
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         function: () => {
-          const bugiToBeRemoved = document.getElementById('bugi');
-          if (bugiToBeRemoved) {
-            bugiToBeRemoved.remove();
-          }
+          window.bugi._destroy();
+          delete window.bugi;
         },
       });
+    } else {
+      chrome.scripting.insertCSS({
+        target: { tabId: tab.id },
+        files: ['bugi.css'],
+      });
+      chrome.scripting
+        .executeScript({
+          target: { tabId: tab.id },
+          files: ['bugi.js'],
+        })
+        .then(() => {
+          console.log('Bugi injected');
+        })
+        .catch((error) => {
+          console.error('Failed to inject bugi:', error);
+        });
     }
 
     // Set the action badge to the next state
@@ -29,20 +41,4 @@ chrome.action.onClicked.addListener(async (tab) => {
       text: nextState,
     });
   }
-
-  chrome.scripting.insertCSS({
-    target: { tabId: tab.id },
-    files: ['bugi.css'],
-  });
-  chrome.scripting
-    .executeScript({
-      target: { tabId: tab.id },
-      files: ['bugi.js'],
-    })
-    .then(() => {
-      console.log('Bugi injected');
-    })
-    .catch((error) => {
-      console.error('Failed to inject bugi:', error);
-    });
 });

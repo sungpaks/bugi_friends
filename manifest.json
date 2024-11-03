@@ -12,13 +12,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": [
-        "sitting.png",
-        "walking00.png",
-        "walking01.png",
-        "walking02.png",
-        "standing.png"
-      ],
+      "resources": ["*.png"],
       "matches": ["<all_urls>"]
     }
   ]
