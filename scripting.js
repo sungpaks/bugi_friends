@@ -22,17 +22,10 @@ chrome.action.onClicked.addListener(async (tab) => {
         target: { tabId: tab.id },
         files: ['bugi.css'],
       });
-      chrome.scripting
-        .executeScript({
-          target: { tabId: tab.id },
-          files: ['bugi.js'],
-        })
-        .then(() => {
-          console.log('Bugi injected');
-        })
-        .catch((error) => {
-          console.error('Failed to inject bugi:', error);
-        });
+      chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['bugi.js'],
+      });
     }
 
     // Set the action badge to the next state
