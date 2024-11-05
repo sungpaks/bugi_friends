@@ -78,9 +78,15 @@ if (!window.Bugi) {
       this.img.addEventListener('click', () => this.startWalk());
       this.img.addEventListener('mouseenter', () => this.showTooltip());
       this.img.addEventListener('mouseleave', () => this.hideTooltip());
+      this.img.addEventListener('touchstart', (e) => this.handleTouchStart(e));
+      document.addEventListener('touchmove', (e) => this.handleTouchMove(e), {
+        passive: false,
+      });
+      document.addEventListener('touchend', () => this.handleTouchEnd());
     }
 
     handleMouseDown(e) {
+      this.moved = false;
       this.isDragging = true;
       this.img.src = this.assets.standing;
       this.shiftX = e.clientX - this.img.offsetLeft;
@@ -88,15 +94,44 @@ if (!window.Bugi) {
       this.updateEmotion();
     }
 
+    handleTouchStart(e) {
+      this.tooltipVisible = true;
+      this.isDragging = true;
+      this.img.src = this.assets.standing;
+      const touch = e.touches[0];
+      this.shiftX = touch.clientX - this.img.offsetLeft;
+      this.shiftY = touch.clientY - this.img.offsetTop;
+      this.updateEmotion();
+    }
+
     handleMouseMove(e) {
       if (!this.isDragging) return;
 
+      this.moved = true;
       this.position.left = e.clientX - this.shiftX;
       this.position.top = e.clientY - this.shiftY;
       this.updatePosition();
     }
 
+    handleTouchMove(e) {
+      if (!this.isDragging) return;
+      const touch = e.touches[0];
+      e.preventDefault();
+      this.position.left = touch.clientX - this.shiftX;
+      this.position.top = touch.clientY - this.shiftY;
+      this.updatePosition();
+    }
+
     handleMouseUp() {
+      if (this.isDragging) {
+        this.isDragging = false;
+        this.img.src = this.assets.sitting;
+        this.updateEmotion();
+      }
+    }
+
+    handleTouchEnd() {
+      this.tooltipVisible = false;
       if (this.isDragging) {
         this.isDragging = false;
         this.img.src = this.assets.sitting;
@@ -144,7 +179,7 @@ if (!window.Bugi) {
     }
 
     startWalk() {
-      if (this.isWalking) return;
+      if (this.isWalking || this.moved) return;
 
       this.getNewRandomEmotion();
       this.isWalking = true;
@@ -237,6 +272,9 @@ if (!window.Bugi) {
       this.img.removeEventListener('click', this.startWalk);
       this.img.removeEventListener('mouseenter', this.showTooltip);
       this.img.removeEventListener('mouseleave', this.hideTooltip);
+      this.img.removeEventListener('touchstart', this.handleTouchStart);
+      document.removeEventListener('touchend', this.handleTouchEnd);
+      document.removeEventListener('touchmove', this.handleTouchMove);
 
       // interval 제거
       clearInterval(this.autoWalkInterval);
