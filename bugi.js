@@ -62,7 +62,7 @@ if (!window.Bugi) {
       this.tooltipText.className = 'tooltip-text';
       this.tooltipText.style = `
       width: 100%;
-      height: 100%;
+      height: 20px;
       visibility: ${this.tooltipVisible ? 'visible' : 'hidden'};
       padding-left: 0;
       padding-right: 0;
@@ -75,7 +75,7 @@ if (!window.Bugi) {
       this.img.addEventListener('mousedown', (e) => this.handleMouseDown(e));
       document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
       document.addEventListener('mouseup', () => this.handleMouseUp());
-      this.img.addEventListener('click', () => this.startWalk());
+      this.img.addEventListener('click', () => this.startWalk('click'));
       this.img.addEventListener('mouseenter', () => this.showTooltip());
       this.img.addEventListener('mouseleave', () => this.hideTooltip());
       this.img.addEventListener('touchstart', (e) => this.handleTouchStart(e));
@@ -163,7 +163,7 @@ if (!window.Bugi) {
           this.getNewRandomEmotion();
           setTimeout(() => this.hideTooltip(), 2000);
         }
-      }, 2000);
+      }, 1000);
     }
 
     getNewRandomEmotion() {
@@ -173,13 +173,19 @@ if (!window.Bugi) {
     setupAutoWalk() {
       this.autoWalkInterval = setInterval(() => {
         if (!this.isWalking && !this.isDragging && Math.random() < 0.1) {
-          this.startWalk();
+          this.startWalk('auto');
         }
-      }, 2000);
+      }, 1000);
     }
 
-    startWalk() {
-      if (this.isWalking || this.moved) return;
+    /**
+     *
+     * @param {"auto" | "click"} method
+     * @returns
+     */
+    startWalk(method) {
+      if (this.isWalking) return;
+      if (method === 'click' && this.moved) return;
 
       this.getNewRandomEmotion();
       this.isWalking = true;
