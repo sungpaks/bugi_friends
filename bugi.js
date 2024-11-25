@@ -343,7 +343,7 @@ if (!window.Bugi) {
     startInertiaAnimation() {
       const decay = 0.95;
       const easeFactor = 0.0075;
-      const rotationFactor = 0.1;
+      const rotationFactor = -0.2;
 
       const animate = (timestamp, currentVelocity) => {
         currentVelocity.x *= decay;
@@ -369,8 +369,7 @@ if (!window.Bugi) {
         this.position.top = nextTop;
         this.img.style.rotate =
           Math.sqrt(currentVelocity.x ** 2 + currentVelocity.y ** 2) *
-            rotationFactor *
-            Math.sign(currentVelocity.x * -1) +
+            rotationFactor +
           'deg';
         this.updatePosition();
         this.setFlipped(currentVelocity.x < 0);
