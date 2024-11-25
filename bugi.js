@@ -17,6 +17,7 @@ if (!window.Bugi) {
       this.initMargin = 0;
       this.startTimestamp = 0;
       this.currentPose = 'sitting';
+      this.poseIndex = 1;
 
       this.autoWalkInterval = null;
       this.tooltipInterval = null;
@@ -51,8 +52,8 @@ if (!window.Bugi) {
       this.tooltip.style.position = 'fixed';
       this.tooltip.style.whiteSpace = 'nowrap';
       this.img.onload = () => {
-        this.tooltip.style.left = `${this.position.left + this.img.width / 2}px`;
-        this.tooltip.style.top = `${this.position.top + this.img.height}px`;
+        this.tooltip.style.left = `${this.position.left + this.img.offsetWidth / 2}px`;
+        this.tooltip.style.top = `${this.position.top + this.img.offsetHeight}px`;
       };
 
       document.body.appendChild(this.img);
@@ -61,11 +62,7 @@ if (!window.Bugi) {
       this.tooltipText = document.createElement('div');
       this.tooltipText.className = 'bugi-tooltip-text';
       this.tooltipText.style = `
-      width: 105px;
-      height: 40px;
       visibility: ${this.tooltipVisible ? 'visible' : 'hidden'};
-      padding-left: 0;
-      padding-right: 0;
     `;
       this.tooltipText.innerText = this.emotions[this.emotionIndex];
       this.tooltip.appendChild(this.tooltipText);
@@ -187,23 +184,36 @@ if (!window.Bugi) {
       if (this.isWalking) return;
       if (method === 'click' && this.moved) return;
 
+      const range = 300;
       this.getNewRandomEmotion();
       this.isWalking = true;
-      const targetX =
-        Math.random() *
-        (window.innerWidth - this.img.offsetWidth - this.initMargin);
-      const targetY =
-        Math.random() *
-        (window.innerHeight - this.img.offsetHeight - this.initMargin);
-      this.setPose('walking');
+      // const targetX =
+      //   Math.random() *
+      //   (window.innerWidth - this.img.offsetWidth - this.initMargin);
+      // const targetY =
+      //   Math.random() *
+      //   (window.innerHeight - this.img.offsetHeight - this.initMargin);
+      const targetX = Math.random() * range * 2 - range + this.position.left; // 현재 위치에서 -300 ~ +300 범위
+      const targetY = Math.random() * range * 2 - range + this.position.top; // 현재 위치에서 -300 ~ +300 범위
+      const clampedX = Math.max(
+        0,
+        Math.min(targetX, window.innerWidth - (this.img.offsetWidth || 0)),
+      ); // 화면 내로 제한
+      const clampedY = Math.max(
+        0,
+        Math.min(targetY, window.innerHeight - (this.img.offsetHeight || 0)),
+      ); // 화면 내로 제한
+
+      this.poseIndex = 1;
+      this.setPose(`walking0${this.poseIndex}`);
       this.isFlipped = this.position.left - targetX > 0;
 
       this.walkRAF = requestAnimationFrame((timestamp) =>
-        this.animateWalk(timestamp, 0, targetX, targetY),
+        this.animateWalk(timestamp, clampedX, clampedY),
       );
     }
 
-    animateWalk(timestamp, count, targetX, targetY) {
+    animateWalk(timestamp, targetX, targetY) {
       if (!this.startTimestamp) this.startTimestamp = timestamp;
       const elapsed = timestamp - this.startTimestamp;
 
@@ -212,20 +222,26 @@ if (!window.Bugi) {
         return;
       }
 
-      if (count % 30 === 0) this.switchPose();
-      if (count % 10 === 0) this.moveTowardsTarget(targetX, targetY);
+      const currentPoseIndex = (Math.floor(elapsed / 500) % 3) + 1;
+      if (currentPoseIndex !== this.poseIndex) {
+        this.poseIndex = currentPoseIndex;
+        this.setPose(`walking0${this.poseIndex}`);
+      }
+
+      this.moveTowardsTarget(targetX, targetY);
 
       this.walkRAF = requestAnimationFrame((newTimestamp) =>
-        this.animateWalk(newTimestamp, count + 1, targetX, targetY),
+        this.animateWalk(newTimestamp + 1, targetX, targetY),
       );
     }
 
     moveTowardsTarget(targetX, targetY) {
+      const easeFactor = 0.001;
       const dx = targetX - this.position.left;
       const dy = targetY - this.position.top;
 
-      this.position.left += dx / 100;
-      this.position.top += dy / 100;
+      this.position.left += dx * easeFactor;
+      this.position.top += dy * easeFactor;
       this.updatePosition();
 
       if (dx < 0) this.img.classList.add('flipped');
@@ -240,14 +256,6 @@ if (!window.Bugi) {
       this.tooltip.style.top = `${this.position.top + this.img.height}px`;
     }
 
-    switchPose() {
-      if (this.img.src === this.assets.walking01)
-        this.img.src = this.assets.walking02;
-      else if (this.img.src === this.assets.walking02)
-        this.img.src = this.assets.walking03;
-      else this.img.src = this.assets.walking01;
-    }
-
     stopWalk() {
       this.isWalking = false;
       this.img.src = this.assets.sitting;
@@ -256,15 +264,7 @@ if (!window.Bugi) {
     }
 
     setPose(pose) {
-      switch (pose) {
-        case 'walking':
-          this.img.src = this.assets.walking01;
-          break;
-        case 'sitting':
-        default:
-          this.img.src = this.assets.sitting;
-          break;
-      }
+      this.img.src = this.assets[pose] || this.assets.sitting;
     }
 
     _destroy() {
