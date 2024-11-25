@@ -360,7 +360,8 @@ if (!window.Bugi) {
     startInertiaAnimation() {
       const decay = 0.95;
       const easeFactor = 0.0075;
-      const rotationFactor = -0.2;
+      const rotationFactor = 0.2;
+      this.setPose('standing');
 
       const animate = (timestamp, currentVelocity) => {
         currentVelocity.x *= decay;
@@ -384,9 +385,14 @@ if (!window.Bugi) {
         nextTop = this.position.top + currentVelocity.y * easeFactor;
         this.position.left = nextLeft;
         this.position.top = nextTop;
-        this.img.style.rotate =
+
+        const rotateDegree =
           Math.sqrt(currentVelocity.x ** 2 + currentVelocity.y ** 2) *
-            rotationFactor +
+          rotationFactor;
+        this.img.style.rotate =
+          Math.sign(currentVelocity.x * 10000) *
+            // Math.sign(currentVelocity.y) *
+            rotateDegree +
           'deg';
         this.updatePosition();
         this.setFlipped(currentVelocity.x < 0);
@@ -399,6 +405,7 @@ if (!window.Bugi) {
             cancelAnimationFrame(this.inertiaRAF);
             this.inertiaRAF = null;
           }
+          this.setPose('sitting');
           return;
         }
         this.inertiaRAF = requestAnimationFrame((newTimestamp) =>
