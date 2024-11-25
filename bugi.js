@@ -24,7 +24,7 @@ if (!window.Bugi) {
       this.createElements();
       this.addEventListeners();
       this.setupAutoWalk();
-      this.setupTooltip();
+      this.setuptooltip();
     }
 
     assets = {
@@ -47,22 +47,22 @@ if (!window.Bugi) {
 
       // Create tooltip
       this.tooltip = document.createElement('div');
-      this.tooltip.className = 'tooltip';
+      this.tooltip.className = 'bugi-tooltip';
       this.tooltip.style.position = 'fixed';
-      this.tooltip.style.left = `${this.position.left - 35}px`;
-      this.tooltip.style.top = `${this.position.top}px`;
-      this.tooltip.style.width = '105px';
-      this.tooltip.style.height = '40px';
       this.tooltip.style.whiteSpace = 'nowrap';
+      this.img.onload = () => {
+        this.tooltip.style.left = `${this.position.left + this.img.width / 2}px`;
+        this.tooltip.style.top = `${this.position.top + this.img.height}px`;
+      };
 
       document.body.appendChild(this.img);
       document.body.appendChild(this.tooltip);
 
       this.tooltipText = document.createElement('div');
-      this.tooltipText.className = 'tooltip-text';
+      this.tooltipText.className = 'bugi-tooltip-text';
       this.tooltipText.style = `
-      width: 100%;
-      height: 20px;
+      width: 105px;
+      height: 40px;
       visibility: ${this.tooltipVisible ? 'visible' : 'hidden'};
       padding-left: 0;
       padding-right: 0;
@@ -76,8 +76,8 @@ if (!window.Bugi) {
       document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
       document.addEventListener('mouseup', () => this.handleMouseUp());
       this.img.addEventListener('click', () => this.startWalk('click'));
-      this.img.addEventListener('mouseenter', () => this.showTooltip());
-      this.img.addEventListener('mouseleave', () => this.hideTooltip());
+      this.img.addEventListener('mouseenter', () => this.showtooltip());
+      this.img.addEventListener('mouseleave', () => this.hidetooltip());
       this.img.addEventListener('touchstart', (e) => this.handleTouchStart(e));
       document.addEventListener('touchmove', (e) => this.handleTouchMove(e), {
         passive: false,
@@ -139,13 +139,13 @@ if (!window.Bugi) {
       }
     }
 
-    showTooltip() {
+    showtooltip() {
       this.tooltipVisible = true;
       this.tooltipText.style.visibility = 'visible';
       // this.tooltipText.innerText = this.emotions[this.emotionIndex];
     }
 
-    hideTooltip() {
+    hidetooltip() {
       this.tooltipVisible = false;
       this.tooltipText.style.visibility = 'hidden';
     }
@@ -156,12 +156,12 @@ if (!window.Bugi) {
         : this.emotions[this.emotionIndex];
     }
 
-    setupTooltip() {
+    setuptooltip() {
       this.tooltipInterval = setInterval(() => {
         if (!this.tooltipVisible && Math.random() < 0.1 && !this.isDragging) {
-          this.showTooltip();
+          this.showtooltip();
           this.getNewRandomEmotion();
-          setTimeout(() => this.hideTooltip(), 2000);
+          setTimeout(() => this.hidetooltip(), 2000);
         }
       }, 1000);
     }
@@ -236,8 +236,8 @@ if (!window.Bugi) {
       // img와 tooltip의 위치를 함께 업데이트
       this.img.style.left = `${this.position.left}px`;
       this.img.style.top = `${this.position.top}px`;
-      this.tooltip.style.left = `${this.position.left - 35}px`;
-      this.tooltip.style.top = `${this.position.top}px`;
+      this.tooltip.style.left = `${this.position.left + this.img.width / 2}px`;
+      this.tooltip.style.top = `${this.position.top + this.img.height}px`;
     }
 
     switchPose() {
@@ -276,8 +276,8 @@ if (!window.Bugi) {
       document.removeEventListener('mouseup', this.handleMouseUp);
       this.img.removeEventListener('mousedown', this.handleMouseDown);
       this.img.removeEventListener('click', this.startWalk);
-      this.img.removeEventListener('mouseenter', this.showTooltip);
-      this.img.removeEventListener('mouseleave', this.hideTooltip);
+      this.img.removeEventListener('mouseenter', this.showtooltip);
+      this.img.removeEventListener('mouseleave', this.hidetooltip);
       this.img.removeEventListener('touchstart', this.handleTouchStart);
       document.removeEventListener('touchend', this.handleTouchEnd);
       document.removeEventListener('touchmove', this.handleTouchMove);
