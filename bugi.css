@@ -11,6 +11,14 @@
     z-index: 9999;
 }
 
+@media (max-width: 720px),
+(max-height: 720px) {
+    .bugi {
+        width: 30px;
+        height: 30px;
+    }
+}
+
 .bugi.flipped {
     transform: scaleX(-1);
 }
