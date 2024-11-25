@@ -52,8 +52,8 @@ if (!window.Bugi) {
       this.tooltip.style.position = 'fixed';
       this.tooltip.style.whiteSpace = 'nowrap';
       this.img.onload = () => {
-        this.tooltip.style.left = `${this.position.left + this.img.offsetWidth / 2}px`;
-        this.tooltip.style.top = `${this.position.top + this.img.offsetHeight}px`;
+        this.tooltip.style.left = `${this.position.left + this.imgOffsetWidth / 2}px`;
+        this.tooltip.style.top = `${this.position.top + this.imgOffsetHeight}px`;
       };
 
       document.body.appendChild(this.img);
@@ -82,6 +82,14 @@ if (!window.Bugi) {
       document.addEventListener('touchend', () => this.handleTouchEnd());
     }
 
+    get imgOffsetWidth() {
+      return this?.img?.offsetWidth || 0;
+    }
+
+    get imgOffsetHeight() {
+      return this?.img?.offsetHeight || 0;
+    }
+
     handleMouseDown(e) {
       this.moved = false;
       this.isDragging = true;
@@ -104,6 +112,18 @@ if (!window.Bugi) {
     handleMouseMove(e) {
       if (!this.isDragging) return;
 
+      if (
+        e.clientX - this.shiftX < 0 ||
+        e.clientX + this.imgOffsetWidth - this.shiftX > window.innerWidth ||
+        e.clientY - this.shiftY < 0 ||
+        e.clientY + this.imgOffsetHeight - this.shiftY > window.innerHeight
+      ) {
+        this.isDragging = false;
+        this.setPose('sitting');
+        document.dispatchEvent(new MouseEvent('mouseup'));
+        return;
+      }
+
       this.moved = true;
       this.position.left = e.clientX - this.shiftX;
       this.position.top = e.clientY - this.shiftY;
@@ -113,6 +133,19 @@ if (!window.Bugi) {
     handleTouchMove(e) {
       if (!this.isDragging) return;
       const touch = e.touches[0];
+
+      if (
+        touch.clientX - this.shiftX < 0 ||
+        touch.clientX + this.imgOffsetWidth - this.shiftX > window.innerWidth ||
+        touch.clientY - this.shiftY < 0 ||
+        touch.clientY + this.imgOffsetHeight - this.shiftY > window.innerHeight
+      ) {
+        this.isDragging = false;
+        this.setPose('sitting');
+        document.dispatchEvent(new MouseEvent('touchend'));
+        return;
+      }
+
       e.preventDefault();
       this.position.left = touch.clientX - this.shiftX;
       this.position.top = touch.clientY - this.shiftY;
@@ -187,21 +220,15 @@ if (!window.Bugi) {
       const range = 300;
       this.getNewRandomEmotion();
       this.isWalking = true;
-      // const targetX =
-      //   Math.random() *
-      //   (window.innerWidth - this.img.offsetWidth - this.initMargin);
-      // const targetY =
-      //   Math.random() *
-      //   (window.innerHeight - this.img.offsetHeight - this.initMargin);
       const targetX = Math.random() * range * 2 - range + this.position.left; // 현재 위치에서 -300 ~ +300 범위
       const targetY = Math.random() * range * 2 - range + this.position.top; // 현재 위치에서 -300 ~ +300 범위
       const clampedX = Math.max(
         0,
-        Math.min(targetX, window.innerWidth - (this.img.offsetWidth || 0)),
+        Math.min(targetX, window.innerWidth - this.imgOffsetWidth),
       ); // 화면 내로 제한
       const clampedY = Math.max(
         0,
-        Math.min(targetY, window.innerHeight - (this.img.offsetHeight || 0)),
+        Math.min(targetY, window.innerHeight - this.imgOffsetHeight),
       ); // 화면 내로 제한
 
       this.poseIndex = 1;
