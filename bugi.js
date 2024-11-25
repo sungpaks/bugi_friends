@@ -19,6 +19,13 @@ if (!window.Bugi) {
       this.currentPose = 'sitting';
       this.poseIndex = 1;
 
+      // 관성운동 관련
+      this.velocity = { x: 0, y: 0 };
+      this.lastPosition = { x: 0, y: 0 };
+      this.lastTimestamp = 0;
+
+      this.animationRAF = null;
+      this.walkRAF = null;
       this.autoWalkInterval = null;
       this.tooltipInterval = null;
 
@@ -91,6 +98,7 @@ if (!window.Bugi) {
     }
 
     handleMouseDown(e) {
+      if (this.animationRAF || this.walkRAF) return;
       this.moved = false;
       this.isDragging = true;
       this.img.src = this.assets.standing;
@@ -100,6 +108,7 @@ if (!window.Bugi) {
     }
 
     handleTouchStart(e) {
+      if (this.animationRAF || this.walkRAF) return;
       this.tooltipVisible = true;
       this.isDragging = true;
       this.img.src = this.assets.standing;
@@ -111,12 +120,14 @@ if (!window.Bugi) {
 
     handleMouseMove(e) {
       if (!this.isDragging) return;
+      const clickX = e.clientX;
+      const clickY = e.clientY;
 
       if (
-        e.clientX - this.shiftX < 0 ||
-        e.clientX + this.imgOffsetWidth - this.shiftX > window.innerWidth ||
-        e.clientY - this.shiftY < 0 ||
-        e.clientY + this.imgOffsetHeight - this.shiftY > window.innerHeight
+        clickX - this.shiftX < 0 ||
+        clickX + this.imgOffsetWidth - this.shiftX > window.innerWidth ||
+        clickY - this.shiftY < 0 ||
+        clickY + this.imgOffsetHeight - this.shiftY > window.innerHeight
       ) {
         this.isDragging = false;
         this.setPose('sitting');
@@ -125,20 +136,34 @@ if (!window.Bugi) {
       }
 
       this.moved = true;
-      this.position.left = e.clientX - this.shiftX;
-      this.position.top = e.clientY - this.shiftY;
+      this.position.left = clickX - this.shiftX;
+      this.position.top = clickY - this.shiftY;
       this.updatePosition();
+
+      // 관성운동 관련
+      const currentTimestamp = e.timeStamp;
+      const dx = clickX - this.lastPosition.x;
+      const dy = clickY - this.lastPosition.y;
+      const dt = (currentTimestamp - this.lastTimestamp) / 1000;
+      if (dt) {
+        this.velocity.x = dx / dt;
+        this.velocity.y = dy / dt;
+      }
+      this.lastPosition = { x: clickX, y: clickY };
+      this.lastTimestamp = currentTimestamp;
     }
 
     handleTouchMove(e) {
       if (!this.isDragging) return;
       const touch = e.touches[0];
+      const touchX = touch.clientX;
+      const touchY = touch.clientY;
 
       if (
-        touch.clientX - this.shiftX < 0 ||
-        touch.clientX + this.imgOffsetWidth - this.shiftX > window.innerWidth ||
-        touch.clientY - this.shiftY < 0 ||
-        touch.clientY + this.imgOffsetHeight - this.shiftY > window.innerHeight
+        touchX - this.shiftX < 0 ||
+        touchX + this.imgOffsetWidth - this.shiftX > window.innerWidth ||
+        touchY - this.shiftY < 0 ||
+        touchY + this.imgOffsetHeight - this.shiftY > window.innerHeight
       ) {
         this.isDragging = false;
         this.setPose('sitting');
@@ -147,9 +172,21 @@ if (!window.Bugi) {
       }
 
       e.preventDefault();
-      this.position.left = touch.clientX - this.shiftX;
-      this.position.top = touch.clientY - this.shiftY;
+      this.position.left = touchX - this.shiftX;
+      this.position.top = touchY - this.shiftY;
       this.updatePosition();
+
+      // 관성운동 관련
+      const currentTimestamp = e.timeStamp;
+      const dx = touchX - this.lastPosition.x;
+      const dy = touchY - this.lastPosition.y;
+      const dt = (currentTimestamp - this.lastTimestamp) / 1000;
+      if (dt) {
+        this.velocity.x = dx / dt;
+        this.velocity.y = dy / dt;
+      }
+      this.lastPosition = { x: touchX, y: touchY };
+      this.lastTimestamp = currentTimestamp;
     }
 
     handleMouseUp() {
@@ -157,6 +194,7 @@ if (!window.Bugi) {
         this.isDragging = false;
         this.img.src = this.assets.sitting;
         this.updateEmotion();
+        this.startInertiaAnimation();
       }
     }
 
@@ -166,6 +204,7 @@ if (!window.Bugi) {
         this.isDragging = false;
         this.img.src = this.assets.sitting;
         this.updateEmotion();
+        this.startInertiaAnimation();
       }
     }
 
@@ -246,6 +285,7 @@ if (!window.Bugi) {
 
       if (elapsed > 5000) {
         this.stopWalk();
+        this.walkRAF = null;
         return;
       }
 
@@ -292,6 +332,51 @@ if (!window.Bugi) {
 
     setPose(pose) {
       this.img.src = this.assets[pose] || this.assets.sitting;
+    }
+
+    startInertiaAnimation() {
+      const decay = 0.95;
+      const easeFactor = 0.0075;
+
+      const animate = (timestamp, currentVelocity) => {
+        currentVelocity.x *= decay;
+        currentVelocity.y *= decay;
+
+        const nextLeft = this.position.left + currentVelocity.x * easeFactor;
+        const nextTop = this.position.top + currentVelocity.y * easeFactor;
+        if (
+          nextLeft < 0 ||
+          nextLeft + this.imgOffsetWidth > window.innerWidth
+        ) {
+          currentVelocity.x *= -1;
+        }
+        if (
+          nextTop < 0 ||
+          nextTop + this.imgOffsetHeight > window.innerHeight
+        ) {
+          currentVelocity.y *= -1;
+        }
+        this.position.left = nextLeft;
+        this.position.top = nextTop;
+        this.updatePosition();
+
+        if (
+          Math.abs(currentVelocity.x) < 0.1 &&
+          Math.abs(currentVelocity.y) < 0.1
+        ) {
+          if (this.animationRAF) {
+            cancelAnimationFrame(this.animationRAF);
+            this.animationRAF = null;
+          }
+          return;
+        }
+        this.animationRAF = requestAnimationFrame((newTimestamp) =>
+          animate(newTimestamp, currentVelocity),
+        );
+      };
+      this.animationRAF = requestAnimationFrame((timestamp) =>
+        animate(timestamp, this.velocity),
+      );
     }
 
     _destroy() {

@@ -23,6 +23,7 @@
 }
 
 .bugi-tooltip .bugi-tooltip-text {
+    box-sizing: content-box;
     visibility: hidden;
     width: 100px;
     background-color: white;
@@ -53,9 +54,8 @@
     }
 
     .bugi-tooltip .bugi-tooltip-text {
-        width: 80px;
-        height: 30px;
-        line-height: 30px;
+        height: 35px;
+        line-height: 35px;
         font-size: 12px;
     }
 }
