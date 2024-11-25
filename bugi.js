@@ -24,7 +24,7 @@ if (!window.Bugi) {
       this.lastPosition = { x: 0, y: 0 };
       this.lastTimestamp = 0;
 
-      this.animationRAF = null;
+      this.inertiaRAF = null;
       this.walkRAF = null;
       this.autoWalkInterval = null;
       this.tooltipInterval = null;
@@ -98,7 +98,7 @@ if (!window.Bugi) {
     }
 
     handleMouseDown(e) {
-      if (this.animationRAF || this.walkRAF) return;
+      if (this.inertiaRAF || this.walkRAF) return;
       this.moved = false;
       this.isDragging = true;
       this.img.src = this.assets.standing;
@@ -108,7 +108,7 @@ if (!window.Bugi) {
     }
 
     handleTouchStart(e) {
-      if (this.animationRAF || this.walkRAF) return;
+      if (this.inertiaRAF || this.walkRAF) return;
       this.tooltipVisible = true;
       this.isDragging = true;
       this.img.src = this.assets.standing;
@@ -253,7 +253,7 @@ if (!window.Bugi) {
      * @returns
      */
     startWalk(method) {
-      if (this.isWalking) return;
+      if (this.isWalking || this.inertiaRAF) return;
       if (method === 'click' && this.moved) return;
 
       const range = 300;
@@ -272,7 +272,7 @@ if (!window.Bugi) {
 
       this.poseIndex = 1;
       this.setPose(`walking0${this.poseIndex}`);
-      this.isFlipped = this.position.left - targetX > 0;
+      this.setFlipped(this.position.left - targetX > 0);
 
       this.walkRAF = requestAnimationFrame((timestamp) =>
         this.animateWalk(timestamp, clampedX, clampedY),
@@ -311,8 +311,8 @@ if (!window.Bugi) {
       this.position.top += dy * easeFactor;
       this.updatePosition();
 
-      if (dx < 0) this.img.classList.add('flipped');
-      else this.img.classList.remove('flipped');
+      // if (dx < 0) this.img.classList.add('flipped');
+      // else this.img.classList.remove('flipped');
     }
 
     updatePosition() {
@@ -334,16 +334,23 @@ if (!window.Bugi) {
       this.img.src = this.assets[pose] || this.assets.sitting;
     }
 
+    setFlipped(flipped) {
+      this.isFlipped = flipped;
+      if (flipped) this.img.classList.add('flipped');
+      else this.img.classList.remove('flipped');
+    }
+
     startInertiaAnimation() {
       const decay = 0.95;
       const easeFactor = 0.0075;
+      const rotationFactor = 0.1;
 
       const animate = (timestamp, currentVelocity) => {
         currentVelocity.x *= decay;
         currentVelocity.y *= decay;
 
-        const nextLeft = this.position.left + currentVelocity.x * easeFactor;
-        const nextTop = this.position.top + currentVelocity.y * easeFactor;
+        let nextLeft = this.position.left + currentVelocity.x * easeFactor;
+        let nextTop = this.position.top + currentVelocity.y * easeFactor;
         if (
           nextLeft < 0 ||
           nextLeft + this.imgOffsetWidth > window.innerWidth
@@ -356,25 +363,33 @@ if (!window.Bugi) {
         ) {
           currentVelocity.y *= -1;
         }
+        nextLeft = this.position.left + currentVelocity.x * easeFactor;
+        nextTop = this.position.top + currentVelocity.y * easeFactor;
         this.position.left = nextLeft;
         this.position.top = nextTop;
+        this.img.style.rotate =
+          Math.sqrt(currentVelocity.x ** 2 + currentVelocity.y ** 2) *
+            rotationFactor *
+            Math.sign(currentVelocity.x * -1) +
+          'deg';
         this.updatePosition();
+        this.setFlipped(currentVelocity.x < 0);
 
         if (
           Math.abs(currentVelocity.x) < 0.1 &&
           Math.abs(currentVelocity.y) < 0.1
         ) {
-          if (this.animationRAF) {
-            cancelAnimationFrame(this.animationRAF);
-            this.animationRAF = null;
+          if (this.inertiaRAF) {
+            cancelAnimationFrame(this.inertiaRAF);
+            this.inertiaRAF = null;
           }
           return;
         }
-        this.animationRAF = requestAnimationFrame((newTimestamp) =>
+        this.inertiaRAF = requestAnimationFrame((newTimestamp) =>
           animate(newTimestamp, currentVelocity),
         );
       };
-      this.animationRAF = requestAnimationFrame((timestamp) =>
+      this.inertiaRAF = requestAnimationFrame((timestamp) =>
         animate(timestamp, this.velocity),
       );
     }
