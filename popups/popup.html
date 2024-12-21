@@ -1,14 +1,39 @@
-<script src="shared.js"></script>
-<link rel="stylesheet" href="shared.css" />
+<meta charset="utf-8" />
+
 <style>
   html,
   body {
     min-width: 286px;
     min-height: 33px;
   }
+
+  .container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    margin-top: 2em;
+  }
+
+  .custom-button {
+    width: 100%;
+    height: 3em;
+    line-height: 3em;
+    padding: 0 1em;
+    text-align: center;
+    border-top: 1px solid #c2c2c2;
+    background-color: #fff;
+    cursor: pointer;
+  }
+
+  .custom-button:hover {
+    background-color: #f2f2f2;
+  }
 </style>
-<p>
-  <b>DEFAULT</b>
-  <br />
-  Default.
-</p>
+<h3>🍔 ദി=´∀｀) 햄부기와 친구들</h3>
+<smaller>햄부기와 친구들은 여러분의 개인정보를 수집하지 않습니다.</smaller>
+<div class="container">
+  <div id="create-new-bugi" class="custom-button">햄부기 꺼내기</div>
+  <div id="destroy-bugi" class="custom-button">햄부기 집어넣기</div>
+</div>
+<script src="popup.js"></script>
