@@ -66,8 +66,9 @@ if (!window.Bugi) {
       this.img.id = 'bugi';
       this.img.className = 'bugi';
       this.img.src = this.assets.sitting;
-      this.img.style.left = `${this.position.left}px`;
-      this.img.style.top = `${this.position.top}px`;
+      this.img.style.left = `${0}px`;
+      this.img.style.top = `${0}px`;
+      this.img.style.transform = `translate(${this.position.left}px, ${this.position.top}px)`;
       this.img.draggable = false;
 
       // Create tooltip
@@ -76,8 +77,9 @@ if (!window.Bugi) {
       this.tooltip.style.position = 'fixed';
       this.tooltip.style.whiteSpace = 'nowrap';
       this.img.onload = () => {
-        this.tooltip.style.left = `${this.position.left + this.imgOffsetWidth / 2}px`;
-        this.tooltip.style.top = `${this.position.top + this.imgOffsetHeight}px`;
+        this.tooltip.style.transform = `translate($${this.position.left + this.imgOffsetWidth / 2}px, ${this.position.top + this.imgOffsetHeight}px)`;
+        // this.tooltip.style.left = `${this.position.left + this.imgOffsetWidth / 2}px`;
+        // this.tooltip.style.top = `${this.position.top + this.imgOffsetHeight}px`;
       };
 
       document.body.appendChild(this.img);
@@ -334,10 +336,12 @@ if (!window.Bugi) {
 
     updatePosition() {
       // img와 tooltip의 위치를 함께 업데이트
-      this.img.style.left = `${this.position.left}px`;
-      this.img.style.top = `${this.position.top}px`;
-      this.tooltip.style.left = `${this.position.left + this.img.width / 2}px`;
-      this.tooltip.style.top = `${this.position.top + this.img.height}px`;
+      this.img.style.transform = `translate(${this.position.left}px, ${this.position.top}px)`;
+      this.tooltip.style.transform = `translate(${this.position.left + this.img.width / 2}px, ${this.position.top + this.img.height}px)`;
+      // this.img.style.left = `${this.position.left}px`;
+      // this.img.style.top = `${this.position.top}px`;
+      // this.tooltip.style.left = `${this.position.left + this.img.width / 2}px`;
+      // this.tooltip.style.top = `${this.position.top + this.img.height}px`;
     }
 
     stopWalk() {
