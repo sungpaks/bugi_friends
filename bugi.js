@@ -76,10 +76,10 @@ if (!window.Bugi) {
       this.tooltip.className = 'bugi-tooltip';
       this.tooltip.style.position = 'fixed';
       this.tooltip.style.whiteSpace = 'nowrap';
+      this.tooltip.style.left = `${0}px`;
+      this.tooltip.style.top = `${0}px`;
       this.img.onload = () => {
-        this.tooltip.style.transform = `translate($${this.position.left + this.imgOffsetWidth / 2}px, ${this.position.top + this.imgOffsetHeight}px)`;
-        // this.tooltip.style.left = `${this.position.left + this.imgOffsetWidth / 2}px`;
-        // this.tooltip.style.top = `${this.position.top + this.imgOffsetHeight}px`;
+        this.tooltip.style.transform = `translate(${this.position.left + this.imgOffsetWidth / 2}px, ${this.position.top + this.imgOffsetHeight}px)`;
       };
 
       document.body.appendChild(this.img);
