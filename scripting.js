@@ -33,7 +33,8 @@ function destroyBugi(tabId) {
   chrome.scripting.executeScript({
     target: { tabId: tabId },
     function: () => {
-      window.bugi._destroy();
+      const bugiToDestroy = window.bugiArray.shift();
+      bugiToDestroy._destroy();
       delete window.bugi;
     },
   });
