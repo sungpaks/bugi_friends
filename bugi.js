@@ -121,8 +121,8 @@ if (!window.Bugi) {
       this.moved = false;
       this.isDragging = true;
       this.img.src = this.assets.standing;
-      this.shiftX = e.clientX - this.img.offsetLeft;
-      this.shiftY = e.clientY - this.img.offsetTop;
+      this.shiftX = e.clientX - this.position.left;
+      this.shiftY = e.clientY - this.position.top;
       this.updateEmotion();
     }
 
@@ -132,8 +132,8 @@ if (!window.Bugi) {
       this.isDragging = true;
       this.img.src = this.assets.standing;
       const touch = e.touches[0];
-      this.shiftX = touch.clientX - this.img.offsetLeft;
-      this.shiftY = touch.clientY - this.img.offsetTop;
+      this.shiftX = touch.clientX - this.position.left;
+      this.shiftY = touch.clientY - this.position.top;
       this.updateEmotion();
     }
 
@@ -213,7 +213,14 @@ if (!window.Bugi) {
         this.isDragging = false;
         this.img.src = this.assets.sitting;
         this.updateEmotion();
-        this.startInertiaAnimation();
+        console.log(
+          '놓는다!',
+          this.position.left,
+          this.position.top,
+          this.velocity.x,
+          this.velocity.y,
+        );
+        if (this.moved) this.startInertiaAnimation();
       }
     }
 
@@ -224,6 +231,7 @@ if (!window.Bugi) {
         this.img.src = this.assets.sitting;
         this.updateEmotion();
         this.startInertiaAnimation();
+        if (this.moved) this.startInertiaAnimation();
       }
     }
 
@@ -329,14 +337,11 @@ if (!window.Bugi) {
       this.position.left += dx * easeFactor;
       this.position.top += dy * easeFactor;
       this.updatePosition();
-
-      // if (dx < 0) this.img.classList.add('flipped');
-      // else this.img.classList.remove('flipped');
     }
 
     updatePosition() {
       // img와 tooltip의 위치를 함께 업데이트
-      this.img.style.transform = `translate(${this.position.left}px, ${this.position.top}px)`;
+      this.img.style.transform = `translate(${this.position.left}px, ${this.position.top}px) ${this.isFlipped ? 'scaleX(-1)' : ''} rotate(${this.degree || 0}deg)`;
       this.tooltip.style.transform = `translate(${this.position.left + this.img.width / 2}px, ${this.position.top + this.img.height}px)`;
       // this.img.style.left = `${this.position.left}px`;
       // this.img.style.top = `${this.position.top}px`;
@@ -357,14 +362,26 @@ if (!window.Bugi) {
 
     setFlipped(flipped) {
       this.isFlipped = flipped;
-      if (flipped) this.img.classList.add('flipped');
-      else this.img.classList.remove('flipped');
+      if (flipped) this.img.classList.add('bugi-flipped');
+      else this.img.classList.remove('bugi-flipped');
+    }
+
+    /**
+     *
+     * @param {string} degree
+     */
+    setRotate(degree) {
+      // 회전의 중심을 현재 위치로 설정
+      this.img.style.transformOrigin = `${this.position.left + this.img.width / 2}px ${this.position.top + this.img.height / 2}px`;
+
+      // 회전 적용
+      this.img.style.rotate = degree + 'deg';
     }
 
     startInertiaAnimation() {
       const decay = 0.95;
       const easeFactor = 0.0075;
-      const rotationFactor = 0.2;
+      const rotationFactor = -0.2;
       this.setPose('standing');
 
       const animate = (timestamp, currentVelocity) => {
@@ -393,11 +410,7 @@ if (!window.Bugi) {
         const rotateDegree =
           Math.sqrt(currentVelocity.x ** 2 + currentVelocity.y ** 2) *
           rotationFactor;
-        this.img.style.rotate =
-          Math.sign(currentVelocity.x * 10000) *
-            // Math.sign(currentVelocity.y) *
-            rotateDegree +
-          'deg';
+        this.degree = rotateDegree;
         this.updatePosition();
         this.setFlipped(currentVelocity.x < 0);
 
@@ -416,6 +429,7 @@ if (!window.Bugi) {
           animate(newTimestamp, currentVelocity),
         );
       };
+
       this.inertiaRAF = requestAnimationFrame((timestamp) =>
         animate(timestamp, this.velocity),
       );

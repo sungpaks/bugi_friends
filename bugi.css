@@ -1,87 +1,86 @@
 .bugi {
-    position: fixed;
-    width: 40px;
-    height: 40px;
-    text-align: center;
-    align-content: center;
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
-    user-select: none;
-    z-index: 9999;
+  position: fixed;
+  width: 40px;
+  height: 40px;
+  text-align: center;
+  align-content: center;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  user-select: none;
+  z-index: 9999;
 }
 
-.bugi.flipped {
-    transform: scaleX(-1);
+.bugi-flipped {
+  /* transform: scaleX(-1); */
 }
 
 .bugi-tooltip {
-    position: relative;
-    display: inline-block;
-    z-index: 9998;
-    visibility: visible;
+  position: relative;
+  display: inline-block;
+  z-index: 9998;
+  visibility: visible;
 }
 
 .bugi-tooltip .bugi-tooltip-text {
-    box-sizing: content-box;
-    visibility: hidden;
-    width: 100px;
-    background-color: white;
-    color: black;
-    text-align: center;
-    border-radius: 10px;
-    border-width: 1px;
-    border-style: solid;
-    border-color: black;
-    position: absolute;
-    z-index: 1;
-    top: 15px;
-    left: 0;
-    width: fit-content;
-    height: 40px;
-    line-height: 40px;
-    padding-left: 10px;
-    padding-right: 10px;
-    transform: translateX(-50%);
-    font-size: 14px;
+  box-sizing: content-box;
+  visibility: hidden;
+  width: 100px;
+  background-color: white;
+  color: black;
+  text-align: center;
+  border-radius: 10px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: black;
+  position: absolute;
+  z-index: 1;
+  top: 15px;
+  left: 0;
+  width: fit-content;
+  height: 40px;
+  line-height: 40px;
+  padding-left: 10px;
+  padding-right: 10px;
+  transform: translateX(-50%);
+  font-size: 14px;
 }
 
-@media (max-width: 720px),
-(max-height: 720px) {
-    .bugi {
-        width: 30px;
-        height: 30px;
-    }
+@media (max-width: 720px), (max-height: 720px) {
+  .bugi {
+    width: 30px;
+    height: 30px;
+  }
 
-    .bugi-tooltip .bugi-tooltip-text {
-        height: 35px;
-        line-height: 35px;
-        font-size: 12px;
-    }
+  .bugi-tooltip .bugi-tooltip-text {
+    height: 35px;
+    line-height: 35px;
+    font-size: 12px;
+  }
 }
 
 .bugi-tooltip:hover .bugi-tooltip-text {
-    visibility: visible;
+  visibility: visible;
 }
 
 .bugi-tooltip .bugi-tooltip-text::before {
-    content: "";
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    margin-left: -10px;
-    border-width: 10px;
-    border-style: solid;
-    border-color: transparent transparent black transparent;
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -10px;
+  border-width: 10px;
+  border-style: solid;
+  border-color: transparent transparent black transparent;
 }
 
 .bugi-tooltip .bugi-tooltip-text::after {
-    content: "";
-    position: absolute;
-    bottom: 98%;
-    left: 50%;
-    margin-left: -10px;
-    border-width: 10px;
-    border-style: solid;
-    border-color: transparent transparent white transparent;
+  content: '';
+  position: absolute;
+  bottom: 98%;
+  left: 50%;
+  margin-left: -10px;
+  border-width: 10px;
+  border-style: solid;
+  border-color: transparent transparent white transparent;
 }
