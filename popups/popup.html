@@ -26,6 +26,10 @@
     cursor: pointer;
   }
 
+  .custom-button.disabled {
+    background-color: #f2f2f2
+  }
+
   .custom-button:not(:disabled):hover {
     background-color: #f2f2f2;
   }
@@ -47,5 +51,6 @@
   <div id="create-new-bugi" class="custom-button">햄부기 주문</div>
   <div id="destroy-bugi" class="custom-button">햄부기 폐기</div>
   <div id="destroy-all-bugis" class="custom-button">햄부기 전량 폐기</div>
+  <div id="destroy-all-bugis" class="custom-button disabled">(준비중) 세트주문 🍟🥤</div>
 </div>
 <script src="popup.js"></script>
