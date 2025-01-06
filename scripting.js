@@ -2,6 +2,8 @@ const extensions = 'https://developer.chrome.com/docs/extensions';
 const webstore = 'https://developer.chrome.com/docs/webstore';
 
 let currentTabId = null;
+let bugiCount = 0;
+const bugiMaxCount = 10;
 
 function setPopup(type, tabId) {
   chrome.action.setPopup({
@@ -19,6 +21,9 @@ async function setBadgeText(text, tabId) {
 }
 
 function createNewBugi(tabId) {
+  if (bugiCount >= bugiMaxCount) {
+    return;
+  }
   chrome.scripting.insertCSS({
     target: { tabId: tabId },
     files: ['bugi.css'],
@@ -27,17 +32,39 @@ function createNewBugi(tabId) {
     target: { tabId: tabId },
     files: ['bugi.js'],
   });
+  bugiCount++;
 }
 
 function destroyBugi(tabId) {
+  if (bugiCount <= 0) {
+    return;
+  }
   chrome.scripting.executeScript({
     target: { tabId: tabId },
     function: () => {
       const bugiToDestroy = window.bugiArray.shift();
       bugiToDestroy._destroy();
-      delete window.bugi;
+      // delete window.bugi;
     },
   });
+  bugiCount--;
+}
+
+function destroyAllBugis(tabId) {
+  if (bugiCount <= 0) {
+    return;
+  }
+  chrome.scripting.executeScript({
+    target: { tabId: tabId },
+    function: () => {
+      window.bugiArray.forEach((bugi) => {
+        bugi._destroy();
+      });
+      window.bugiArray = [];
+      // delete window.bugi;
+    },
+  });
+  bugiCount = 0;
 }
 
 function isRestrictedBrowserPage(url) {
@@ -75,9 +102,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.action === 'create-new-bugi') {
     createNewBugi(currentTabId);
-    setBadgeText('ON', currentTabId);
+    setBadgeText(bugiCount.toString(), currentTabId);
   } else if (message.action === 'destroy-bugi') {
     destroyBugi(currentTabId);
-    setBadgeText('OFF', currentTabId);
+    setBadgeText(bugiCount.toString(), currentTabId);
+  } else if (message.action === 'destroy-all-bugis') {
+    destroyAllBugis(currentTabId);
+    setBadgeText('', currentTabId);
   }
 });

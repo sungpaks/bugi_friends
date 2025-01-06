@@ -26,14 +26,26 @@
     cursor: pointer;
   }
 
-  .custom-button:hover {
+  .custom-button:not(:disabled):hover {
     background-color: #f2f2f2;
+  }
+
+  .custom-button:disabled {
+    background-color: #f2f2f2;
+    cursor: not-allowed;
+  }
+
+  .text-right {
+    float: right;
   }
 </style>
 <h3>🍔 ദി=´∀｀) 햄부기와 친구들</h3>
 <smaller>햄부기와 친구들은 여러분의 개인정보를 수집하지 않습니다.</smaller>
+<hr />
+<h4>주문은 최대 50개까지 가능합니다.</h4>
 <div class="container">
-  <div id="create-new-bugi" class="custom-button">햄부기 꺼내기</div>
-  <div id="destroy-bugi" class="custom-button">햄부기 집어넣기</div>
+  <div id="create-new-bugi" class="custom-button">햄부기 주문</div>
+  <div id="destroy-bugi" class="custom-button">햄부기 폐기</div>
+  <div id="destroy-all-bugis" class="custom-button">햄부기 전량 폐기</div>
 </div>
 <script src="popup.js"></script>

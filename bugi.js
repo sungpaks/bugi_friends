@@ -30,7 +30,10 @@ if (!window.Bugi) {
         '(´～｀*)｡｡oO',
       ];
       this.emotionIndex = Math.floor(Math.random() * this.emotions.length);
-      this.position = { top: 50, left: 50 };
+      this.position = {
+        top: Math.random() * (window.innerWidth - 40),
+        left: Math.random() * (window.innerHeight - 40),
+      };
       this.initMargin = 0;
       this.startTimestamp = 0;
       this.currentPose = 'sitting';
