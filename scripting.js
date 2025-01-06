@@ -3,7 +3,7 @@ const webstore = 'https://developer.chrome.com/docs/webstore';
 
 let currentTabId = null;
 let bugiCount = 0;
-const bugiMaxCount = 10;
+const bugiMaxCount = 50;
 
 function setPopup(type, tabId) {
   chrome.action.setPopup({
