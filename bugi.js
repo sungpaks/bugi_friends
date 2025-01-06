@@ -31,8 +31,8 @@ if (!window.Bugi) {
       ];
       this.emotionIndex = Math.floor(Math.random() * this.emotions.length);
       this.position = {
-        top: Math.random() * (window.innerWidth - 40),
-        left: Math.random() * (window.innerHeight - 40),
+        top: Math.random() * (window.innerHeight - 40),
+        left: Math.random() * (window.innerWidth - 40),
       };
       this.initMargin = 0;
       this.startTimestamp = 0;
