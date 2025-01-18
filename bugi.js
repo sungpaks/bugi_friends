@@ -1,3 +1,11 @@
+if (!window.bugiContainer) {
+  const container = document.createElement('div');
+  container.id = 'bugi-container';
+  container.className = 'bugi-container'; // CSS 클래스 추가
+  document.body.appendChild(container);
+  window.bugiContainer = container;
+}
+
 if (!window.Bugi) {
   class Bugi {
     constructor() {
@@ -85,8 +93,8 @@ if (!window.Bugi) {
         this.tooltip.style.transform = `translate(${this.position.left + this.imgOffsetWidth / 2}px, ${this.position.top + this.imgOffsetHeight}px)`;
       };
 
-      document.body.appendChild(this.img);
-      document.body.appendChild(this.tooltip);
+      window.bugiContainer.appendChild(this.img);
+      window.bugiContainer.appendChild(this.tooltip);
 
       this.tooltipText = document.createElement('div');
       this.tooltipText.className = 'bugi-tooltip-text';
