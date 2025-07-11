@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Bugi and Friends - 1.2.2",
-  "version": "1.2.2",
+  "name": "Bugi and Friends - 1.3.0",
+  "version": "1.3.0",
   "permissions": ["activeTab", "scripting"],
   "content_scripts": [],
   "action": {
