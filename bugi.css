@@ -9,6 +9,7 @@
   cursor: pointer;
   user-select: none;
   z-index: 9999;
+  pointer-events: visible;
 }
 
 .bugi-flipped {
@@ -97,4 +98,5 @@
   /* 부모 컨테이너 클릭 방지 */
   transform: translateZ(0);
   /* GPU 가속 */
+  z-index: 9999;
 }

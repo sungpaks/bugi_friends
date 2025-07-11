@@ -67,6 +67,54 @@ function destroyAllBugis(tabId) {
   bugiCount = 0;
 }
 
+const frenchFriesMaxCount = 50;
+let frenchFriesCount = 0;
+function createNewFrenchFries(tabId) {
+  if (frenchFriesCount >= frenchFriesMaxCount) {
+    return;
+  }
+  chrome.scripting.insertCSS({
+    target: { tabId: tabId },
+    files: ['bugi.css'],
+  });
+  chrome.scripting.executeScript({
+    target: { tabId: tabId },
+    files: ['french-fries.js'],
+  });
+  frenchFriesCount++;
+}
+
+function destroyFrenchFries(tabId) {
+  if (frenchFriesCount <= 0) {
+    return;
+  }
+  chrome.scripting.executeScript({
+    target: { tabId: tabId },
+    function: () => {
+      const bugiToDestroy = window.frenchFriesArray.shift();
+      bugiToDestroy._destroy();
+      // delete window.bugi;
+    },
+  });
+  frenchFriesCount--;
+}
+
+function destroyAllFrenchFries(tabId) {
+  if (frenchFriesCount <= 0) {
+    return;
+  }
+  chrome.scripting.executeScript({
+    target: { tabId: tabId },
+    function: () => {
+      window.frenchFriesArray.forEach((frenchFries) => {
+        frenchFries._destroy();
+      });
+      window.frenchFriesArray = [];
+    },
+  });
+  frenchFriesCount = 0;
+}
+
 function isRestrictedBrowserPage(url) {
   if (!url) {
     return true;
@@ -92,6 +140,10 @@ chrome.action.onClicked.addListener(async (tab) => {
     // destroyBugi(tab.id);
   } else {
     // createNewBugi(tab.id);
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['declare-bugi.js'],
+    });
     setPopup('popup', tab.id);
   }
 });
@@ -100,14 +152,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message.action || !currentTabId) {
     return;
   }
-  if (message.action === 'create-new-bugi') {
-    createNewBugi(currentTabId);
-    setBadgeText(bugiCount.toString(), currentTabId);
-  } else if (message.action === 'destroy-bugi') {
-    destroyBugi(currentTabId);
-    setBadgeText(bugiCount.toString(), currentTabId);
-  } else if (message.action === 'destroy-all-bugis') {
-    destroyAllBugis(currentTabId);
-    setBadgeText('', currentTabId);
+  switch (message.action) {
+    case 'create-new-bugi':
+      createNewBugi(currentTabId);
+      setBadgeText(bugiCount.toString(), currentTabId);
+      break;
+    case 'destroy-bugi':
+      destroyBugi(currentTabId);
+      setBadgeText(bugiCount.toString(), currentTabId);
+      break;
+    case 'destroy-all-bugis':
+      destroyAllBugis(currentTabId);
+      setBadgeText('', currentTabId);
+      break;
+    case 'create-new-french-fries':
+      createNewFrenchFries(currentTabId);
+      setBadgeText(frenchFriesCount.toString(), currentTabId);
+      break;
+    case 'destroy-french-fries':
+      destroyFrenchFries(currentTabId);
+      setBadgeText(frenchFriesCount.toString(), currentTabId);
+      break;
+    case 'destroy-all-french-fries':
+      destroyAllFrenchFries(currentTabId);
+      setBadgeText('', currentTabId);
+      break;
+    default:
+      break;
   }
 });
