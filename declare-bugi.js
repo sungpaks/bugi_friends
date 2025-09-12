@@ -65,7 +65,54 @@ if (!window.Bugi) {
       this.setuptooltip();
     }
 
-    initAssets() {
+    async initAssets() {
+      // 1) Storage API session에 생성된 시트가 있으면 우선 사용
+      try {
+        const canUseSession =
+          typeof chrome !== 'undefined' &&
+          chrome.storage &&
+          chrome.storage.session &&
+          typeof chrome.storage.session.get === 'function';
+        if (canUseSession) {
+          const { generatedSpriteSheet } = await chrome.storage.session.get([
+            'generatedSpriteSheet',
+          ]);
+          if (generatedSpriteSheet && window.spriteSheet?.sliceSpriteSheet) {
+            const { frames } = await window.spriteSheet.sliceSpriteSheet({
+              source: generatedSpriteSheet,
+            });
+            this.assets = {
+              sitting: frames[0].toDataURL('image/png'),
+              standing: frames[1].toDataURL('image/png'),
+              walking01: frames[2].toDataURL('image/png'),
+              walking02: frames[3].toDataURL('image/png'),
+              walking03: frames[4].toDataURL('image/png'),
+            };
+            return;
+          }
+        }
+      } catch (e) {
+        // ignore session read errors
+      }
+
+      // 2) 유틸 자동 로딩 (세션/기본 모두 고려)
+      if (window.spriteSheet?.loadFramesFromEitherSource) {
+        try {
+          const frames = await window.spriteSheet.loadFramesFromEitherSource(
+            this.name,
+          );
+          this.assets = {
+            sitting: frames.sitting.toDataURL('image/png'),
+            standing: frames.standing.toDataURL('image/png'),
+            walking01: frames.walking01.toDataURL('image/png'),
+            walking02: frames.walking02.toDataURL('image/png'),
+            walking03: frames.walking03.toDataURL('image/png'),
+          };
+          return;
+        } catch (_) {}
+      }
+
+      // 3) 최종 폴백: 기존 정적 이미지
       this.assets = {
         sitting: chrome.runtime.getURL(`images/${this.name}/sitting.png`),
         standing: chrome.runtime.getURL(`images/${this.name}/standing.png`),
@@ -75,12 +122,14 @@ if (!window.Bugi) {
       };
     }
 
-    createElements() {
+    async createElements() {
       // Create image element
       this.img = document.createElement('img');
       this.img.id = `${this.name}-img-${new Date().getTime()}`;
       this.img.className = 'bugi';
-      this.img.src = this.assets.sitting;
+      if (!this.assets) await this.initAssets();
+      if (this.assets && this.assets.sitting)
+        this.img.src = this.assets.sitting;
       // this.img.style.width = '40px';
       // this.img.style.height = '40px';
       this.img.style.left = `${0}px`;
@@ -230,13 +279,7 @@ if (!window.Bugi) {
         this.isDragging = false;
         this.img.src = this.assets.sitting;
         this.updateEmotion();
-        console.log(
-          '놓는다!',
-          this.position.left,
-          this.position.top,
-          this.velocity.x,
-          this.velocity.y,
-        );
+        // drop debug log removed
         if (this.moved) this.startInertiaAnimation();
       }
     }
@@ -357,6 +400,8 @@ if (!window.Bugi) {
     }
 
     updatePosition() {
+      // 요소가 아직 생성되지 않았거나 제거된 경우 안전 가드
+      if (!this.img || !this.tooltip) return;
       // img와 tooltip의 위치를 함께 업데이트
       this.img.style.transform = `translate(${this.position.left}px, ${this.position.top}px) ${this.isFlipped ? 'scaleX(-1)' : ''} rotate(${this.degree || 0}deg)`;
       this.tooltip.style.transform = `translate(${this.position.left + this.img.width / 2}px, ${this.position.top + this.img.height}px)`;
@@ -374,7 +419,34 @@ if (!window.Bugi) {
     }
 
     setPose(pose) {
-      this.img.src = this.assets[pose] || this.assets.sitting;
+      this.img.src = this.assets?.[pose] || this.assets?.sitting || '';
+    }
+
+    async reloadAssetsFromSession() {
+      // storage 권한이 불가한 문맥에서는 조용히 반환
+      if (
+        typeof chrome === 'undefined' ||
+        !chrome.storage ||
+        !chrome.storage.session
+      )
+        return;
+      if (!window.spriteSheet?.loadFramesFromEitherSource) return;
+      try {
+        const frames = await window.spriteSheet.loadFramesFromEitherSource(
+          this.name,
+        );
+        this.assets = {
+          sitting: frames.sitting.toDataURL('image/png'),
+          standing: frames.standing.toDataURL('image/png'),
+          walking01: frames.walking01.toDataURL('image/png'),
+          walking02: frames.walking02.toDataURL('image/png'),
+          walking03: frames.walking03.toDataURL('image/png'),
+        };
+        // 현재 포즈 유지하여 즉시 반영
+        this.setPose(this.currentPose);
+      } catch (e) {
+        // ignore reload errors
+      }
     }
 
     setFlipped(flipped) {
@@ -473,7 +545,7 @@ if (!window.Bugi) {
 
       // 애니메이션 중지
       cancelAnimationFrame(this.walkRAF);
-      // console.log('Bugi removed');
+      // removed debug log
     }
   }
 

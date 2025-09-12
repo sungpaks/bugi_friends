@@ -55,4 +55,92 @@
   <div id="destroy-french-fries" class="custom-button">감자튀김 폐기</div>
   <div id="destroy-all-french-fries" class="custom-button">감자튀김 전량 폐기</div>
 </div>
+<style>
+  .section {
+    width: 100%;
+    margin-top: 1em;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    padding: 0.75em;
+    background: #fff;
+  }
+
+  .row {
+    display: flex;
+    gap: 0.5em;
+    width: 100%;
+    margin-bottom: 0.5em;
+    align-items: center;
+  }
+
+  .row>* {
+    flex: 1;
+  }
+
+  input[type="file"] {
+    width: 100%;
+  }
+
+  input[type="password"],
+  input[type="text"] {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  canvas {
+    border: 1px dashed #c2c2c2;
+    background: #fafafa;
+  }
+
+  .grid-preview {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    width: 100%;
+  }
+</style>
+<div class="section" id="new-friend-section">
+  <h4>🧪 새 친구 생성하기 (실험적)</h4>
+  <div class="row">
+    <input id="reference-file" type="file" accept="image/*" />
+  </div>
+  <div class="row">
+    <input id="api-key" type="password" placeholder="Gemini API Key (저장 선택)" />
+  </div>
+  <div class="row">
+    <input id="prompt" type="text" placeholder="프롬프트 (선택)" />
+  </div>
+  <div class="row">
+    <button id="btn-generate" class="custom-button">생성하기</button>
+    <button id="btn-apply" class="custom-button" disabled>지금 적용</button>
+  </div>
+  <div class="row">
+    <label><input type="checkbox" id="remember-key" /> API Key 저장 (local)</label>
+    <span id="status-text" class="text-right"></span>
+  </div>
+  <div class="row">
+    <div style="display:flex; gap:8px; width:100%">
+      <div style="flex:1">
+        <div>업로드 미리보기</div>
+        <canvas id="ref-canvas" width="96" height="96"></canvas>
+      </div>
+      <div style="flex:1">
+        <div>시트 미리보기</div>
+        <canvas id="sheet-canvas" width="240" height="48"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div>프레임 미리보기</div>
+    <div class="grid-preview">
+      <canvas id="frame-0" width="48" height="48"></canvas>
+      <canvas id="frame-1" width="48" height="48"></canvas>
+      <canvas id="frame-2" width="48" height="48"></canvas>
+      <canvas id="frame-3" width="48" height="48"></canvas>
+      <canvas id="frame-4" width="48" height="48"></canvas>
+    </div>
+  </div>
+</div>
+<script src="../lib/nanobanana.js"></script>
+<script src="../lib/spritesheet.js"></script>
 <script src="popup.js"></script>

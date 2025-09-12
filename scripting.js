@@ -140,6 +140,11 @@ chrome.action.onClicked.addListener(async (tab) => {
     // destroyBugi(tab.id);
   } else {
     // createNewBugi(tab.id);
+    // declare-bugi.js보다 먼저 spritesheet 유틸을 주입해야 세션 스프라이트를 읽을 수 있음
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['lib/spritesheet.js'],
+    });
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ['declare-bugi.js'],
@@ -177,6 +182,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       destroyAllFrenchFries(currentTabId);
       setBadgeText('', currentTabId);
       break;
+    case 'APPLY_NEW_SPRITE': {
+      // 현재 탭에 주입된 모든 Bugi 인스턴스에 새 스프라이트 적용
+      chrome.scripting.executeScript({
+        target: { tabId: currentTabId },
+        world: 'ISOLATED',
+        func: () => {
+          // 페이지 컨텍스트에서 실행
+          if (Array.isArray(window.bugiArray)) {
+            window.bugiArray.forEach((b) => {
+              if (typeof b?.reloadAssetsFromSession === 'function') {
+                b.reloadAssetsFromSession();
+              }
+            });
+          }
+          if (Array.isArray(window.frenchFriesArray)) {
+            window.frenchFriesArray.forEach((b) => {
+              if (typeof b?.reloadAssetsFromSession === 'function') {
+                b.reloadAssetsFromSession();
+              }
+            });
+          }
+        },
+      });
+      break;
+    }
     default:
       break;
   }
