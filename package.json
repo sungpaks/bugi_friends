@@ -7,7 +7,7 @@
   },
   "author": "sungpaks",
   "license": "ISC",
-  "description": "",
+  "description": "👉👉👉[햄부기 즉시시작](https://chromewebstore.google.com/detail/bugi-and-friends/cidndoahplamogkfaimmahedcnakjnag)👈👈👈",
   "devDependencies": {
     "@eslint/js": "^9.14.0",
     "eslint": "^9.14.0",
@@ -15,5 +15,8 @@
     "globals": "^15.11.0",
     "prettier": "^3.3.3",
     "typescript-eslint": "^8.12.2"
+  },
+  "dependencies": {
+    "@google/genai": "^1.19.0"
   }
 }

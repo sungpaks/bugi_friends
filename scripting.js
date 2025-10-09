@@ -115,6 +115,53 @@ function destroyAllFrenchFries(tabId) {
   frenchFriesCount = 0;
 }
 
+const newFriendMaxCount = 50;
+let newFriendCount = 0;
+function createNewFriend(tabId) {
+  if (newFriendCount >= newFriendMaxCount) {
+    return;
+  }
+  chrome.scripting.insertCSS({
+    target: { tabId: tabId },
+    files: ['bugi.css'],
+  });
+  chrome.scripting.executeScript({
+    target: { tabId: tabId },
+    files: ['new-friend.js'],
+  });
+  newFriendCount++;
+}
+
+function destroyNewFriend(tabId) {
+  if (newFriendCount <= 0) {
+    return;
+  }
+  chrome.scripting.executeScript({
+    target: { tabId: tabId },
+    function: () => {
+      const friendToDestroy = window.newFriendArray.shift();
+      friendToDestroy._destroy();
+    },
+  });
+  newFriendCount--;
+}
+
+function destroyAllNewFriends(tabId) {
+  if (newFriendCount <= 0) {
+    return;
+  }
+  chrome.scripting.executeScript({
+    target: { tabId: tabId },
+    function: () => {
+      window.newFriendArray.forEach((friend) => {
+        friend._destroy();
+      });
+      window.newFriendArray = [];
+    },
+  });
+  newFriendCount = 0;
+}
+
 function isRestrictedBrowserPage(url) {
   if (!url) {
     return true;
@@ -140,6 +187,11 @@ chrome.action.onClicked.addListener(async (tab) => {
     // destroyBugi(tab.id);
   } else {
     // createNewBugi(tab.id);
+    // declare-bugi.js보다 먼저 spritesheet 유틸을 주입해야 세션 스프라이트를 읽을 수 있음
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['lib/spritesheet.js'],
+    });
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ['declare-bugi.js'],
@@ -175,6 +227,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       break;
     case 'destroy-all-french-fries':
       destroyAllFrenchFries(currentTabId);
+      setBadgeText('', currentTabId);
+      break;
+    case 'create-new-friend':
+      createNewFriend(currentTabId);
+      setBadgeText(newFriendCount.toString(), currentTabId);
+      break;
+    case 'destroy-new-friend':
+      destroyNewFriend(currentTabId);
+      setBadgeText(newFriendCount.toString(), currentTabId);
+      break;
+    case 'destroy-all-new-friends':
+      destroyAllNewFriends(currentTabId);
       setBadgeText('', currentTabId);
       break;
     default:
