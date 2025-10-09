@@ -102,36 +102,42 @@
 <div class="section" id="new-friend-section">
   <h4>🧪 새 친구 생성하기 (실험적)</h4>
   <div class="row">
+    <label>레퍼런스 이미지 업로드</label>
+  </div>
+  <div class="row">
     <input id="reference-file" type="file" accept="image/*" />
   </div>
   <div class="row">
-    <input id="api-key" type="password" placeholder="Gemini API Key (저장 선택)" />
+    <label>Gemini API Key</label>
   </div>
   <div class="row">
-    <input id="prompt" type="text" placeholder="프롬프트 (선택)" />
+    <input id="api-key" type="password" placeholder="API Key 입력" />
   </div>
   <div class="row">
-    <button id="btn-generate" class="custom-button">생성하기</button>
-    <button id="btn-apply" class="custom-button" disabled>지금 적용</button>
+    <label><input type="checkbox" id="remember-key" /> API Key 저장 (로컬)</label>
   </div>
   <div class="row">
-    <label><input type="checkbox" id="remember-key" /> API Key 저장 (local)</label>
-    <span id="status-text" class="text-right"></span>
+    <label>추가 프롬프트 (선택)</label>
+  </div>
+  <div class="row">
+    <input id="prompt" type="text" placeholder="예: 빨간 모자를 쓴 귀여운 캐릭터" />
   </div>
   <div class="row">
     <div style="display:flex; gap:8px; width:100%">
       <div style="flex:1">
-        <div>업로드 미리보기</div>
+        <div style="font-size: 0.9em; margin-bottom: 4px;">업로드 미리보기</div>
         <canvas id="ref-canvas" width="96" height="96"></canvas>
       </div>
       <div style="flex:1">
-        <div>시트 미리보기</div>
+        <div style="font-size: 0.9em; margin-bottom: 4px;">시트 미리보기</div>
         <canvas id="sheet-canvas" width="240" height="48"></canvas>
       </div>
     </div>
   </div>
   <div class="row">
-    <div>프레임 미리보기</div>
+    <div style="font-size: 0.9em; margin-bottom: 4px;">프레임 미리보기</div>
+  </div>
+  <div class="row">
     <div class="grid-preview">
       <canvas id="frame-0" width="48" height="48"></canvas>
       <canvas id="frame-1" width="48" height="48"></canvas>
@@ -140,6 +146,17 @@
       <canvas id="frame-4" width="48" height="48"></canvas>
     </div>
   </div>
+  <div class="row">
+    <button id="btn-generate" class="custom-button">AI로 스프라이트 생성</button>
+  </div>
+  <div class="row">
+    <span id="status-text" style="font-size: 0.9em; color: #666;"></span>
+  </div>
+</div>
+<div class="container">
+  <div id="create-new-friend" class="custom-button" disabled style="opacity: 0.5;">새 친구 생성 🎉</div>
+  <div id="destroy-new-friend" class="custom-button">새 친구 폐기</div>
+  <div id="destroy-all-new-friends" class="custom-button">새 친구 전량 폐기</div>
 </div>
 <script src="../lib/nanobanana.js"></script>
 <script src="../lib/spritesheet.js"></script>

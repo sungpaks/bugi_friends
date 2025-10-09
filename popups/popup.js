@@ -22,6 +22,18 @@ const destroyAllFrenchFries = () => {
   chrome.runtime.sendMessage({ action: 'destroy-all-french-fries' });
 };
 
+const createNewFriend = () => {
+  chrome.runtime.sendMessage({ action: 'create-new-friend' });
+};
+
+const destroyNewFriend = () => {
+  chrome.runtime.sendMessage({ action: 'destroy-new-friend' });
+};
+
+const destroyAllNewFriends = () => {
+  chrome.runtime.sendMessage({ action: 'destroy-all-new-friends' });
+};
+
 document
   .getElementById('create-new-bugi')
   .addEventListener('click', createNewBugi);
@@ -38,6 +50,15 @@ document
 document
   .getElementById('destroy-all-french-fries')
   .addEventListener('click', destroyAllFrenchFries);
+document
+  .getElementById('create-new-friend')
+  .addEventListener('click', createNewFriend);
+document
+  .getElementById('destroy-new-friend')
+  .addEventListener('click', destroyNewFriend);
+document
+  .getElementById('destroy-all-new-friends')
+  .addEventListener('click', destroyAllNewFriends);
 
 // ===== 새 친구 생성하기 (Gemini 기반) =====
 (function initNewFriendSection() {
@@ -46,7 +67,7 @@ document
   const $prompt = document.getElementById('prompt');
   const $rememberKey = document.getElementById('remember-key');
   const $btnGenerate = document.getElementById('btn-generate');
-  const $btnApply = document.getElementById('btn-apply');
+  const $btnCreateFriend = document.getElementById('create-new-friend');
   const $status = document.getElementById('status-text');
   const $refCanvas = document.getElementById('ref-canvas');
   const $sheetCanvas = document.getElementById('sheet-canvas');
@@ -101,12 +122,12 @@ document
     try {
       const file = $file.files?.[0];
       if (!file) {
-        setStatus('이미지를 업로드하세요');
+        setStatus('❌ 이미지를 업로드하세요');
         return;
       }
       const apiKey = $apiKey.value.trim();
       if (!apiKey) {
-        setStatus('API Key를 입력하세요');
+        setStatus('❌ API Key를 입력하세요');
         return;
       }
 
@@ -116,7 +137,7 @@ document
         chrome.storage.local.remove(['geminiApiKey']);
       }
 
-      setStatus('생성 중...');
+      setStatus('⏳ AI가 스프라이트를 생성하는 중...');
       $btnGenerate.disabled = true;
       const blob = await window.nanobanana.generateSprite({
         apiKey,
@@ -159,21 +180,17 @@ document
         generatedSpriteSheet: generatedDataUrl,
         generatedSpriteMeta: meta,
       });
-      setStatus('생성 완료. 적용을 눌러 반영하세요.');
-      $btnApply.disabled = false;
+      setStatus('✅ 생성 완료! 이제 "새 친구 생성 🎉" 버튼을 눌러보세요.');
+      $btnCreateFriend.disabled = false;
+      $btnCreateFriend.style.opacity = '1';
     } catch (e) {
       console.error(e);
       const message = e && e.message ? e.message : String(e);
-      setStatus(`생성 실패: ${message}`);
-      $btnApply.disabled = true;
+      setStatus(`❌ 생성 실패: ${message}`);
+      $btnCreateFriend.disabled = true;
+      $btnCreateFriend.style.opacity = '0.5';
     } finally {
       $btnGenerate.disabled = false;
     }
-  });
-
-  $btnApply.addEventListener('click', async () => {
-    setStatus('적용 중...');
-    chrome.runtime.sendMessage({ action: 'APPLY_NEW_SPRITE' });
-    setStatus('적용 요청 완료');
   });
 })();
