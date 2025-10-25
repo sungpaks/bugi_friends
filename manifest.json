@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Bugi and Friends - 1.4.0",
-  "version": "1.4.0",
+  "name": "Bugi and Friends - 1.4.1",
+  "version": "1.4.1",
   "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": ["https://generativelanguage.googleapis.com/*"],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*",
+    "https://bugi-serverless-pied.vercel.app/*"
+  ],
   "content_scripts": [],
   "action": {
     "default_icon": "images/logo.png"

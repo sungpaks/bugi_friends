@@ -67,6 +67,8 @@ document
   const $prompt = document.getElementById('prompt');
   const $rememberKey = document.getElementById('remember-key');
   const $btnGenerate = document.getElementById('btn-generate');
+  const $btnRemoveBackground = document.getElementById('btn-remove-background');
+  const $btnDownloadSprite = document.getElementById('btn-download-sprite');
   const $btnCreateFriend = document.getElementById('create-new-friend');
   const $status = document.getElementById('status-text');
   const $refCanvas = document.getElementById('ref-canvas');
@@ -110,6 +112,96 @@ document
     ctx.drawImage(img, x, y, w, h);
   }
 
+  // DataURL을 Blob으로 변환하는 헬퍼 함수
+  function dataUrlToBlob(dataUrl) {
+    return new Promise((resolve, reject) => {
+      try {
+        const arr = dataUrl.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) {
+          u8arr[n] = bstr.charCodeAt(n);
+        }
+        resolve(new Blob([u8arr], { type: mime }));
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  // Blob을 DataURL로 변환하는 헬퍼 함수
+  async function blobToDataUrl(blob) {
+    const reader = new FileReader();
+    return await new Promise((resolve, reject) => {
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  const loadSecrets = (() => {
+    let promise;
+    return () => {
+      if (!promise) {
+        promise = import(chrome.runtime.getURL('secrets.js')).catch((err) => {
+          console.warn('secrets.js를 불러오지 못했습니다.', err);
+          return {};
+        });
+      }
+      return promise;
+    };
+  })();
+
+  // 저장된 스프라이트 복원하기
+  async function restoreSavedSprite() {
+    try {
+      const result = await chrome.storage.local.get([
+        'savedSpriteDataUrl',
+        'savedSpriteMeta',
+      ]);
+
+      if (result.savedSpriteDataUrl) {
+        generatedDataUrl = result.savedSpriteDataUrl;
+        meta = result.savedSpriteMeta;
+        generatedBlob = await dataUrlToBlob(generatedDataUrl);
+
+        // 시트 미리보기 복원
+        const img = new Image();
+        img.onload = () => {
+          drawImageToCanvas(img, $sheetCanvas);
+        };
+        img.src = generatedDataUrl;
+
+        // 프레임 미리보기 복원
+        const info = await window.spriteSheet.sliceSpriteSheet({
+          source: generatedDataUrl,
+        });
+        info.frames.forEach((frame, idx) => {
+          const ctx = frameCanvases[idx].getContext('2d');
+          ctx.clearRect(0, 0, 48, 48);
+          ctx.drawImage(frame, 0, 0);
+        });
+
+        // 버튼들 활성화
+        $btnRemoveBackground.disabled = false;
+        $btnRemoveBackground.style.opacity = '1';
+        $btnDownloadSprite.disabled = false;
+        $btnDownloadSprite.style.opacity = '1';
+        $btnCreateFriend.disabled = false;
+        $btnCreateFriend.style.opacity = '1';
+
+        setStatus('✅ 이전에 생성한 스프라이트가 복원되었습니다.');
+      }
+    } catch (e) {
+      console.error('스프라이트 복원 실패:', e);
+    }
+  }
+
+  // 팝업 열릴 때 저장된 스프라이트 복원
+  restoreSavedSprite();
+
   $file.addEventListener('change', () => {
     const file = $file.files?.[0];
     if (!file) return;
@@ -145,14 +237,7 @@ document
         prompt: $prompt.value || undefined,
       });
       generatedBlob = blob;
-      generatedDataUrl = await (async () => {
-        const reader = new FileReader();
-        return await new Promise((resolve, reject) => {
-          reader.onloadend = () => resolve(reader.result);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      })();
+      generatedDataUrl = await blobToDataUrl(blob);
 
       // 시트/프레임 미리보기
       const info = await window.spriteSheet.sliceSpriteSheet({
@@ -172,7 +257,7 @@ document
         ctx.drawImage(frame, 0, 0);
       });
 
-      // 세션 스토리지에 저장
+      // 세션 스토리지에 저장 (화면에 캐릭터 생성용)
       await chrome.storage.session.setAccessLevel({
         accessLevel: 'TRUSTED_AND_UNTRUSTED_CONTEXTS',
       });
@@ -180,17 +265,170 @@ document
         generatedSpriteSheet: generatedDataUrl,
         generatedSpriteMeta: meta,
       });
-      setStatus('✅ 생성 완료! 이제 "새 친구 생성 🎉" 버튼을 눌러보세요.');
+
+      // 로컬 스토리지에 영구 저장 (팝업 재시작 시 복원용)
+      await chrome.storage.local.set({
+        savedSpriteDataUrl: generatedDataUrl,
+        savedSpriteMeta: meta,
+      });
+
+      // 버튼들 활성화
+      setStatus(
+        '✅ 생성 완료! "배경 제거" 또는 "다운로드"하거나, "새 친구 생성"으로 새 친구를 추가해보세요.',
+      );
+      $btnRemoveBackground.disabled = false;
+      $btnRemoveBackground.style.opacity = '1';
+      $btnDownloadSprite.disabled = false;
+      $btnDownloadSprite.style.opacity = '1';
       $btnCreateFriend.disabled = false;
       $btnCreateFriend.style.opacity = '1';
     } catch (e) {
       console.error(e);
       const message = e && e.message ? e.message : String(e);
       setStatus(`❌ 생성 실패: ${message}`);
+      $btnRemoveBackground.disabled = true;
+      $btnRemoveBackground.style.opacity = '0.5';
+      $btnDownloadSprite.disabled = true;
+      $btnDownloadSprite.style.opacity = '0.5';
       $btnCreateFriend.disabled = true;
       $btnCreateFriend.style.opacity = '0.5';
     } finally {
       $btnGenerate.disabled = false;
+    }
+  });
+
+  // ===== 배경 제거 기능 =====
+  $btnRemoveBackground.addEventListener('click', async () => {
+    try {
+      setStatus('⏳ 배경을 제거하는 중...');
+      $btnRemoveBackground.disabled = true;
+
+      if (!generatedBlob) {
+        setStatus('❌ 먼저 스프라이트를 생성하세요.');
+        return;
+      }
+
+      const { PROXY_SERVER_URL, EXTENSION_AUTH_KEY } = await loadSecrets();
+      const proxyServerUrl = (PROXY_SERVER_URL || '').trim();
+      const extensionAuthKey = (EXTENSION_AUTH_KEY || '').trim();
+      if (!proxyServerUrl) {
+        throw new Error('PROXY_SERVER_URL이 설정되지 않았습니다.');
+      }
+      if (!extensionAuthKey) {
+        throw new Error('EXTENSION_AUTH_KEY가 설정되지 않았습니다.');
+      }
+
+      const removeBgEndpoint = `${proxyServerUrl.replace(
+        /\/$/,
+        '',
+      )}/api/remove-bg`;
+
+      const formData = new FormData();
+      formData.append('image_file', generatedBlob, 'sprite.png');
+      formData.append('size', 'auto');
+      formData.append('format', 'png');
+
+      const response = await fetch(removeBgEndpoint, {
+        method: 'POST',
+        headers: {
+          'X-Extension-Auth': extensionAuthKey,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorMessage = '';
+        try {
+          const data = await response.json();
+          errorMessage =
+            data?.errors?.[0]?.title ||
+            data?.errors?.[0]?.detail ||
+            data?.message ||
+            JSON.stringify(data);
+        } catch (_) {
+          errorMessage = await response.text();
+        }
+        throw new Error(
+          errorMessage ||
+            `배경 제거 프록시 요청 실패 (HTTP ${response.status})`,
+        );
+      }
+
+      const processedBlob = await response.blob();
+      generatedBlob = processedBlob;
+      generatedDataUrl = await blobToDataUrl(processedBlob);
+
+      const img = new Image();
+      img.onload = () => {
+        drawImageToCanvas(img, $sheetCanvas);
+      };
+      img.src = generatedDataUrl;
+
+      const info = await window.spriteSheet.sliceSpriteSheet({
+        source: generatedDataUrl,
+      });
+      info.frames.forEach((frame, idx) => {
+        const ctx = frameCanvases[idx].getContext('2d');
+        ctx.clearRect(0, 0, 48, 48);
+        ctx.drawImage(frame, 0, 0);
+      });
+      meta = info.meta;
+
+      await chrome.storage.local.set({
+        savedSpriteDataUrl: generatedDataUrl,
+        savedSpriteMeta: meta,
+      });
+      await chrome.storage.session.set({
+        generatedSpriteSheet: generatedDataUrl,
+        generatedSpriteMeta: meta,
+      });
+
+      setStatus('✅ 배경 제거 완료!');
+    } catch (e) {
+      console.error(e);
+      const message = e && e.message ? e.message : String(e);
+      setStatus(`❌ 배경 제거 실패: ${message}`);
+    } finally {
+      $btnRemoveBackground.disabled = false;
+    }
+  });
+
+  // ===== 스프라이트 다운로드 기능 =====
+  $btnDownloadSprite.addEventListener('click', async () => {
+    try {
+      if (!generatedBlob) {
+        setStatus('❌ 다운로드할 스프라이트가 없습니다.');
+        return;
+      }
+
+      setStatus('💾 다운로드 중...');
+
+      // Blob을 다운로드 가능한 URL로 변환
+      const downloadUrl = URL.createObjectURL(generatedBlob);
+
+      // 현재 시간을 파일명에 포함
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .slice(0, -5);
+      const filename = `bugi-sprite-${timestamp}.png`;
+
+      // 다운로드 트리거
+      const $downloadLink = document.createElement('a');
+      $downloadLink.href = downloadUrl;
+      $downloadLink.download = filename;
+      document.body.appendChild($downloadLink);
+      $downloadLink.click();
+      document.body.removeChild($downloadLink);
+
+      // URL 해제 (메모리 정리)
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
+
+      setStatus(`✅ 다운로드 완료: ${filename}`);
+    } catch (e) {
+      console.error(e);
+      const message = e && e.message ? e.message : String(e);
+      setStatus(`❌ 다운로드 실패: ${message}`);
     }
   });
 })();
