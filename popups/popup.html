@@ -149,11 +149,16 @@
   <div class="row">
     <button id="btn-generate" class="custom-button">AI로 스프라이트 생성</button>
   </div>
-  <div class="row">
+  <hr />
+  <div class="row" style="margin-top: 1em;">
     <label>Remove.bg API Key (배경 제거용)</label>
   </div>
   <div class="row">
-    <input id="removebg-api-key" type="password" placeholder="API Key 또는 'hamburger' 입력" />
+    <input id="removebg-api-key" type="password" placeholder="remove.bg 사이트의 API Key 입력" />
+  </div>
+  <div class="row">
+    <span style="color: #666;"><small><a href="https://www.remove.bg/api" target="_blank">remove.bg API Key 발급</a>문서를
+        참고하세요.</small></span>
   </div>
   <div class="row">
     <label><input type="checkbox" id="remember-removebg-key" /> API Key 저장 (Local)</label>
@@ -166,6 +171,10 @@
   </div>
   <div class="row">
     <span id="status-text" style="font-size: 0.9em; color: #666;"></span>
+  </div>
+  <div class="row" style="margin-top: 1em;">
+    <span style="color: #666;"><small>API Key에 "hamburger"를 입력해보세요. 운이 좋다면 API Key 없이도 AI생성/배경제거 기능을 사용할 수
+        있습니다.</small></span>
   </div>
 </div>
 <div class="container">
