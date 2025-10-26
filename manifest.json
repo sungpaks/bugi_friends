@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Bugi and Friends - 1.4.1",
-  "version": "1.4.1",
+  "name": "Bugi and Friends - 1.4.2",
+  "version": "1.4.2",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",

@@ -66,6 +66,8 @@ document
   const $apiKey = document.getElementById('api-key');
   const $prompt = document.getElementById('prompt');
   const $rememberKey = document.getElementById('remember-key');
+  const $removebgApiKey = document.getElementById('removebg-api-key');
+  const $rememberRemovebgKey = document.getElementById('remember-removebg-key');
   const $btnGenerate = document.getElementById('btn-generate');
   const $btnRemoveBackground = document.getElementById('btn-remove-background');
   const $btnDownloadSprite = document.getElementById('btn-download-sprite');
@@ -83,10 +85,14 @@ document
   const sheetCtx = $sheetCanvas.getContext('2d');
 
   // 기존 저장된 API Key 불러오기 (선택)
-  chrome.storage.local.get(['geminiApiKey'], (res) => {
+  chrome.storage.local.get(['geminiApiKey', 'removebgApiKey'], (res) => {
     if (res.geminiApiKey) {
       $apiKey.value = res.geminiApiKey;
       $rememberKey.checked = true;
+    }
+    if (res.removebgApiKey) {
+      $removebgApiKey.value = res.removebgApiKey;
+      $rememberRemovebgKey.checked = true;
     }
   });
 
@@ -231,11 +237,39 @@ document
 
       setStatus('⏳ AI가 스프라이트를 생성하는 중...');
       $btnGenerate.disabled = true;
-      const blob = await window.nanobanana.generateSprite({
-        apiKey,
-        referenceImageBlob: file,
-        prompt: $prompt.value || undefined,
-      });
+
+      let blob;
+      // 특별 쿠폰 코드 체크
+      const isSpecialCode = window.nanobanana.isSpecialCouponCode(apiKey);
+
+      if (isSpecialCode) {
+        // 서버리스 API를 통해 생성 (제작자가 쏩니다! 🍔)
+        setStatus('⏳ 특별 쿠폰 코드가 적용되었습니다! 제작자가 쏩니다 🍔');
+        const { PROXY_SERVER_URL, EXTENSION_AUTH_KEY } = await loadSecrets();
+        const proxyServerUrl = (PROXY_SERVER_URL || '').trim();
+        const extensionAuthKey = (EXTENSION_AUTH_KEY || '').trim();
+
+        if (!proxyServerUrl || !extensionAuthKey) {
+          throw new Error(
+            '서버리스 API 설정이 올바르지 않습니다. secrets.js를 확인하세요.',
+          );
+        }
+
+        blob = await window.nanobanana.generateSpriteViaServerless({
+          proxyServerUrl,
+          extensionAuthKey,
+          referenceImageBlob: file,
+          prompt: $prompt.value || undefined,
+        });
+      } else {
+        // 일반적인 API Key 사용
+        blob = await window.nanobanana.generateSprite({
+          apiKey,
+          referenceImageBlob: file,
+          prompt: $prompt.value || undefined,
+        });
+      }
+
       generatedBlob = blob;
       generatedDataUrl = await blobToDataUrl(blob);
 
@@ -300,61 +334,57 @@ document
   // ===== 배경 제거 기능 =====
   $btnRemoveBackground.addEventListener('click', async () => {
     try {
-      setStatus('⏳ 배경을 제거하는 중...');
-      $btnRemoveBackground.disabled = true;
-
       if (!generatedBlob) {
         setStatus('❌ 먼저 스프라이트를 생성하세요.');
         return;
       }
 
-      const { PROXY_SERVER_URL, EXTENSION_AUTH_KEY } = await loadSecrets();
-      const proxyServerUrl = (PROXY_SERVER_URL || '').trim();
-      const extensionAuthKey = (EXTENSION_AUTH_KEY || '').trim();
-      if (!proxyServerUrl) {
-        throw new Error('PROXY_SERVER_URL이 설정되지 않았습니다.');
-      }
-      if (!extensionAuthKey) {
-        throw new Error('EXTENSION_AUTH_KEY가 설정되지 않았습니다.');
+      const removebgApiKey = $removebgApiKey.value.trim();
+      if (!removebgApiKey) {
+        setStatus('❌ Remove.bg API Key를 입력하세요.');
+        return;
       }
 
-      const removeBgEndpoint = `${proxyServerUrl.replace(
-        /\/$/,
-        '',
-      )}/api/remove-bg`;
+      if ($rememberRemovebgKey.checked) {
+        chrome.storage.local.set({ removebgApiKey });
+      } else {
+        chrome.storage.local.remove(['removebgApiKey']);
+      }
 
-      const formData = new FormData();
-      formData.append('image_file', generatedBlob, 'sprite.png');
-      formData.append('size', 'auto');
-      formData.append('format', 'png');
+      setStatus('⏳ 배경을 제거하는 중...');
+      $btnRemoveBackground.disabled = true;
 
-      const response = await fetch(removeBgEndpoint, {
-        method: 'POST',
-        headers: {
-          'X-Extension-Auth': extensionAuthKey,
-        },
-        body: formData,
-      });
+      let processedBlob;
+      // 특별 쿠폰 코드 체크
+      const isSpecialCode =
+        window.nanobanana.isSpecialCouponCode(removebgApiKey);
 
-      if (!response.ok) {
-        let errorMessage = '';
-        try {
-          const data = await response.json();
-          errorMessage =
-            data?.errors?.[0]?.title ||
-            data?.errors?.[0]?.detail ||
-            data?.message ||
-            JSON.stringify(data);
-        } catch (_) {
-          errorMessage = await response.text();
+      if (isSpecialCode) {
+        // 서버리스 API를 통해 배경 제거 (제작자가 쏩니다! 🍔)
+        setStatus('⏳ 특별 쿠폰 코드가 적용되었습니다! 제작자가 쏩니다 🍔');
+        const { PROXY_SERVER_URL, EXTENSION_AUTH_KEY } = await loadSecrets();
+        const proxyServerUrl = (PROXY_SERVER_URL || '').trim();
+        const extensionAuthKey = (EXTENSION_AUTH_KEY || '').trim();
+
+        if (!proxyServerUrl || !extensionAuthKey) {
+          throw new Error(
+            '서버리스 API 설정이 올바르지 않습니다. secrets.js를 확인하세요.',
+          );
         }
-        throw new Error(
-          errorMessage ||
-            `배경 제거 프록시 요청 실패 (HTTP ${response.status})`,
-        );
+
+        processedBlob = await window.nanobanana.removeBackgroundViaServerless({
+          proxyServerUrl,
+          extensionAuthKey,
+          imageBlob: generatedBlob,
+        });
+      } else {
+        // 일반적인 API Key 사용 (직접 Remove.bg API 호출)
+        processedBlob = await window.nanobanana.removeBackground({
+          apiKey: removebgApiKey,
+          imageBlob: generatedBlob,
+        });
       }
 
-      const processedBlob = await response.blob();
       generatedBlob = processedBlob;
       generatedDataUrl = await blobToDataUrl(processedBlob);
 
