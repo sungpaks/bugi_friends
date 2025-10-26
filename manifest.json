@@ -5,7 +5,8 @@
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
-    "https://bugi-serverless-pied.vercel.app/*"
+    "https://bugi-serverless-pied.vercel.app/*",
+    "https://api.remove.bg/v1.0/removebg"
   ],
   "content_scripts": [],
   "action": {
