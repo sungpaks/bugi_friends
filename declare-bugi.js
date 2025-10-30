@@ -10,7 +10,7 @@ if (!window.Bugi) {
   class Bugi {
     constructor(name = 'bugi') {
       this.name = name;
-      this.initAssets();
+      this.assetsPromise = this.initAssets();
       this.isDragging = false;
       this.isWalking = false;
       this.tooltipVisible = false;
@@ -66,63 +66,8 @@ if (!window.Bugi) {
     }
 
     async initAssets() {
-      // 1) name이 'new-friend'인 경우에만 세션 스토리지 체크
-      if (this.name === 'new-friend') {
-        try {
-          const canUseSession =
-            typeof chrome !== 'undefined' &&
-            chrome.storage &&
-            chrome.storage.session &&
-            typeof chrome.storage.session.get === 'function';
-          if (canUseSession) {
-            const { generatedSpriteSheet } = await chrome.storage.session.get([
-              'generatedSpriteSheet',
-            ]);
-            if (generatedSpriteSheet && window.spriteSheet?.sliceSpriteSheet) {
-              const { frames } = await window.spriteSheet.sliceSpriteSheet({
-                source: generatedSpriteSheet,
-              });
-              this.assets = {
-                sitting: frames[0].toDataURL('image/png'),
-                standing: frames[1].toDataURL('image/png'),
-                walking01: frames[2].toDataURL('image/png'),
-                walking02: frames[3].toDataURL('image/png'),
-                walking03: frames[4].toDataURL('image/png'),
-              };
-              return;
-            }
-          }
-        } catch (e) {
-          // ignore session read errors
-        }
-      }
-
-      // 2) 유틸 자동 로딩 (기본 이미지)
-      // if (window.spriteSheet?.loadFramesFromEitherSource) {
-      //   try {
-      //     const frames = await window.spriteSheet.loadFramesFromEitherSource(
-      //       this.name,
-      //     );
-      //     this.assets = {
-      //       sitting: frames.sitting.toDataURL('image/png'),
-      //       standing: frames.standing.toDataURL('image/png'),
-      //       walking01: frames.walking01.toDataURL('image/png'),
-      //       walking02: frames.walking02.toDataURL('image/png'),
-      //       walking03: frames.walking03.toDataURL('image/png'),
-      //     };
-      //     return;
-      //   } catch (_) {}
-      // }
-      else {
-        // 3) 최종 폴백: 기존 정적 이미지
-        this.assets = {
-          sitting: chrome.runtime.getURL(`images/${this.name}/sitting.png`),
-          standing: chrome.runtime.getURL(`images/${this.name}/standing.png`),
-          walking01: chrome.runtime.getURL(`images/${this.name}/walking00.png`),
-          walking02: chrome.runtime.getURL(`images/${this.name}/walking01.png`),
-          walking03: chrome.runtime.getURL(`images/${this.name}/walking02.png`),
-        };
-      }
+      this.assets = await this.constructor.preloadAssets(this.name);
+      return this.assets;
     }
 
     async createElements() {
@@ -130,7 +75,10 @@ if (!window.Bugi) {
       this.img = document.createElement('img');
       this.img.id = `${this.name}-img-${new Date().getTime()}`;
       this.img.className = 'bugi';
-      if (!this.assets) await this.initAssets();
+      if (!this.assetsPromise) {
+        this.assetsPromise = this.initAssets();
+      }
+      await this.assetsPromise;
       if (this.assets && this.assets.sitting)
         this.img.src = this.assets.sitting;
       // this.img.style.width = '40px';
@@ -163,6 +111,107 @@ if (!window.Bugi) {
       this.tooltip.appendChild(this.tooltipText);
     }
 
+    static async preloadAssets(name) {
+      if (!this.assetCache) this.assetCache = {};
+      if (this.assetCache[name]) return this.assetCache[name];
+
+      if (!this.assetPromises) this.assetPromises = {};
+      if (!this.assetPromises[name]) {
+        this.assetPromises[name] = this.loadAssets(name)
+          .then((assets) => {
+            this.assetCache[name] = assets;
+            delete this.assetPromises[name];
+            return assets;
+          })
+          .catch((error) => {
+            delete this.assetPromises[name];
+            throw error;
+          });
+      }
+
+      return this.assetPromises[name];
+    }
+
+    static async loadAssets(name) {
+      if (name === 'new-friend') {
+        try {
+          const canUseSession =
+            typeof chrome !== 'undefined' &&
+            chrome.storage &&
+            chrome.storage.session &&
+            typeof chrome.storage.session.get === 'function';
+          if (canUseSession) {
+            const { generatedSpriteSheet } = await chrome.storage.session.get([
+              'generatedSpriteSheet',
+            ]);
+            if (generatedSpriteSheet && window.spriteSheet?.sliceSpriteSheet) {
+              const { frames } = await window.spriteSheet.sliceSpriteSheet({
+                source: generatedSpriteSheet,
+              });
+              return {
+                sitting: frames[0].toDataURL('image/png'),
+                standing: frames[1].toDataURL('image/png'),
+                walking01: frames[2].toDataURL('image/png'),
+                walking02: frames[3].toDataURL('image/png'),
+                walking03: frames[4].toDataURL('image/png'),
+              };
+            }
+          }
+        } catch (e) {
+          // ignore session read errors
+        }
+      }
+
+      const baseAssets = {
+        sitting: this.resolveAssetURL(`images/${name}/sitting.png`),
+        standing: this.resolveAssetURL(`images/${name}/standing.png`),
+        walking01: this.resolveAssetURL(`images/${name}/walking00.png`),
+        walking02: this.resolveAssetURL(`images/${name}/walking01.png`),
+        walking03: this.resolveAssetURL(`images/${name}/walking02.png`),
+      };
+
+      return this.preloadStaticAssets(baseAssets);
+    }
+
+    static async preloadStaticAssets(urlMap) {
+      const entries = await Promise.all(
+        Object.entries(urlMap).map(async ([pose, url]) => [
+          pose,
+          await this.fetchObjectURL(url),
+        ]),
+      );
+      return Object.fromEntries(entries);
+    }
+
+    static async fetchObjectURL(url) {
+      if (typeof url !== 'string') return url;
+      if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok)
+          throw new Error(`Failed to load asset: ${response.status}`);
+        const blob = await response.blob();
+        return URL.createObjectURL(blob);
+      } catch (error) {
+        console.warn('[Bugi] Failed to preload asset', url, error);
+        return url;
+      }
+    }
+
+    static resolveAssetURL(path) {
+      try {
+        if (
+          typeof chrome !== 'undefined' &&
+          chrome.runtime &&
+          typeof chrome.runtime.getURL === 'function'
+        ) {
+          return chrome.runtime.getURL(path);
+        }
+      } catch (_) {}
+      return path;
+    }
+
     addEventListeners() {
       this.img.addEventListener('mousedown', (e) => this.handleMouseDown(e));
       document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
@@ -189,7 +238,7 @@ if (!window.Bugi) {
       if (this.inertiaRAF || this.walkRAF) return;
       this.moved = false;
       this.isDragging = true;
-      this.img.src = this.assets.standing;
+      this.setPose('standing');
       this.shiftX = e.clientX - this.position.left;
       this.shiftY = e.clientY - this.position.top;
       this.updateEmotion();
@@ -199,7 +248,7 @@ if (!window.Bugi) {
       if (this.inertiaRAF || this.walkRAF) return;
       this.tooltipVisible = true;
       this.isDragging = true;
-      this.img.src = this.assets.standing;
+      this.setPose('standing');
       const touch = e.touches[0];
       this.shiftX = touch.clientX - this.position.left;
       this.shiftY = touch.clientY - this.position.top;
@@ -280,7 +329,7 @@ if (!window.Bugi) {
     handleMouseUp() {
       if (this.isDragging) {
         this.isDragging = false;
-        this.img.src = this.assets.sitting;
+        this.setPose('sitting');
         this.updateEmotion();
         // drop debug log removed
         if (this.moved) this.startInertiaAnimation();
@@ -291,7 +340,7 @@ if (!window.Bugi) {
       this.tooltipVisible = false;
       if (this.isDragging) {
         this.isDragging = false;
-        this.img.src = this.assets.sitting;
+        this.setPose('sitting');
         this.updateEmotion();
         this.startInertiaAnimation();
         if (this.moved) this.startInertiaAnimation();
@@ -416,13 +465,16 @@ if (!window.Bugi) {
 
     stopWalk() {
       this.isWalking = false;
-      this.img.src = this.assets.sitting;
+      this.setPose('sitting');
       this.startTimestamp = 0;
       cancelAnimationFrame(this.walkRAF);
     }
 
     setPose(pose) {
-      this.img.src = this.assets?.[pose] || this.assets?.sitting || '';
+      const newSrc = this.assets?.[pose] || this.assets?.sitting || '';
+      if (this.img.src === newSrc) return;
+      this.img.src = newSrc;
+      this.currentPose = pose;
     }
 
     async reloadAssetsFromSession() {
@@ -452,6 +504,9 @@ if (!window.Bugi) {
             walking02: frames[3].toDataURL('image/png'),
             walking03: frames[4].toDataURL('image/png'),
           };
+          this.constructor.assetCache = this.constructor.assetCache || {};
+          this.constructor.assetCache[this.name] = this.assets;
+          this.assetsPromise = Promise.resolve(this.assets);
           // 현재 포즈 유지하여 즉시 반영
           this.setPose(this.currentPose);
         }
