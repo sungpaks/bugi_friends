@@ -420,11 +420,16 @@ if (!window.Bugi) {
 
     animateWalk(timestamp, targetX, targetY) {
       if (!this.startTimestamp) this.startTimestamp = timestamp;
+      if (!this.lastTimestamp) this.lastTimestamp = timestamp;
+
       const elapsed = timestamp - this.startTimestamp;
+      const deltaTime = timestamp - this.lastTimestamp;
+      this.lastTimestamp = timestamp;
 
       if (elapsed > 5000) {
         this.stopWalk();
         this.walkRAF = null;
+        this.lastTimestamp = 0;
         return;
       }
 
@@ -434,15 +439,17 @@ if (!window.Bugi) {
         this.setPose(`walking0${this.poseIndex}`);
       }
 
-      this.moveTowardsTarget(targetX, targetY);
+      this.moveTowardsTarget(targetX, targetY, deltaTime);
 
       this.walkRAF = requestAnimationFrame((newTimestamp) =>
         this.animateWalk(newTimestamp + 1, targetX, targetY),
       );
     }
 
-    moveTowardsTarget(targetX, targetY) {
-      const easeFactor = 0.001;
+    moveTowardsTarget(targetX, targetY, deltaTime = 16.67) {
+      const normalizedDeltaTime = deltaTime / 16.67; // 60fps기준으로 정규화.
+      const easeFactor = 0.001 * normalizedDeltaTime;
+
       const dx = targetX - this.position.left;
       const dy = targetY - this.position.top;
 
@@ -534,12 +541,22 @@ if (!window.Bugi) {
     }
 
     startInertiaAnimation() {
-      const decay = 0.95;
-      const easeFactor = 0.0075;
+      const baseDecay = 0.95;
+      const baseEaseFactor = 0.0075;
       const rotationFactor = -0.2;
       this.setPose('standing');
 
+      let lastTimestamp = 0;
+
       const animate = (timestamp, currentVelocity) => {
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const deltaTime = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
+
+        const normalizedDeltaTime = deltaTime / 16.67; // 60fps기준으로 정규화.
+        const decay = Math.pow(baseDecay, normalizedDeltaTime);
+        const easeFactor = baseEaseFactor * normalizedDeltaTime;
+
         currentVelocity.x *= decay;
         currentVelocity.y *= decay;
 
