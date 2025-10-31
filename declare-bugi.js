@@ -10,6 +10,7 @@ if (!window.Bugi) {
   class Bugi {
     constructor(name = 'bugi') {
       this.name = name;
+      this.createdAt = Date.now();
       this.assetsPromise = this.initAssets();
       this.isDragging = false;
       this.isWalking = false;
@@ -428,8 +429,6 @@ if (!window.Bugi) {
 
       if (elapsed > 5000) {
         this.stopWalk();
-        this.walkRAF = null;
-        this.lastTimestamp = 0;
         return;
       }
 
@@ -475,6 +474,8 @@ if (!window.Bugi) {
       this.setPose('sitting');
       this.startTimestamp = 0;
       cancelAnimationFrame(this.walkRAF);
+      this.walkRAF = null;
+      this.lastTimestamp = 0;
     }
 
     setPose(pose) {
@@ -560,6 +561,50 @@ if (!window.Bugi) {
         currentVelocity.x *= decay;
         currentVelocity.y *= decay;
 
+        window.bugiArray.forEach((anotherBugi) => {
+          if (anotherBugi.createdAt === this.createdAt) return;
+          const thisCenter = {
+            x: this.position.left + this.imgOffsetWidth / 2,
+            y: this.position.top + this.imgOffsetHeight / 2,
+          };
+          const anotherCenter = {
+            x: anotherBugi.position.left + anotherBugi.imgOffsetWidth / 2,
+            y: anotherBugi.position.top + anotherBugi.imgOffsetHeight / 2,
+          };
+          const isColliding = checkCollision(
+            thisCenter.x,
+            thisCenter.y,
+            anotherCenter.x,
+            anotherCenter.y,
+            this.imgOffsetWidth / 2,
+            anotherBugi.imgOffsetWidth / 2,
+          );
+          if (isColliding && anotherBugi.createdAt !== this.lastCollisionBugi) {
+            const { v1x, v1y, v2x, v2y } = performCollision(
+              thisCenter.x,
+              thisCenter.y,
+              anotherCenter.x,
+              anotherCenter.y,
+              currentVelocity.x,
+              currentVelocity.y,
+              anotherBugi.velocity.x,
+              anotherBugi.velocity.y,
+            );
+            currentVelocity.x = v1x;
+            currentVelocity.y = v1y;
+
+            anotherBugi.velocity.x = v2x;
+            anotherBugi.velocity.y = v2y;
+
+            if (anotherBugi.isWalking) {
+              anotherBugi.stopWalk();
+            }
+            anotherBugi.startInertiaAnimation();
+            this.lastCollisionBugi = anotherBugi.createdAt;
+            anotherBugi.lastCollisionBugi = this.createdAt;
+          }
+        });
+
         let nextLeft = this.position.left + currentVelocity.x * easeFactor;
         let nextTop = this.position.top + currentVelocity.y * easeFactor;
         if (
@@ -590,11 +635,7 @@ if (!window.Bugi) {
           Math.abs(currentVelocity.x) < 0.1 &&
           Math.abs(currentVelocity.y) < 0.1
         ) {
-          if (this.inertiaRAF) {
-            cancelAnimationFrame(this.inertiaRAF);
-            this.inertiaRAF = null;
-          }
-          this.setPose('sitting');
+          this.stopInertiaAnimation();
           return;
         }
         this.inertiaRAF = requestAnimationFrame((newTimestamp) =>
@@ -605,6 +646,17 @@ if (!window.Bugi) {
       this.inertiaRAF = requestAnimationFrame((timestamp) =>
         animate(timestamp, this.velocity),
       );
+    }
+
+    stopInertiaAnimation() {
+      if (this.inertiaRAF) {
+        cancelAnimationFrame(this.inertiaRAF);
+        this.inertiaRAF = null;
+      }
+      this.setPose('sitting');
+      this.lastCollisionBugi = null;
+      this.lastTimestamp = 0;
+      this.startTimestamp = 0;
     }
 
     _destroy() {

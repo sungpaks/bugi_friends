@@ -194,6 +194,10 @@ chrome.action.onClicked.addListener(async (tab) => {
     });
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
+      files: ['vector-utils.js'],
+    });
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
       files: ['declare-bugi.js'],
     });
     setPopup('popup', tab.id);
