@@ -561,49 +561,7 @@ if (!window.Bugi) {
         currentVelocity.x *= decay;
         currentVelocity.y *= decay;
 
-        window.bugiArray.forEach((anotherBugi) => {
-          if (anotherBugi.createdAt === this.createdAt) return;
-          const thisCenter = {
-            x: this.position.left + this.imgOffsetWidth / 2,
-            y: this.position.top + this.imgOffsetHeight / 2,
-          };
-          const anotherCenter = {
-            x: anotherBugi.position.left + anotherBugi.imgOffsetWidth / 2,
-            y: anotherBugi.position.top + anotherBugi.imgOffsetHeight / 2,
-          };
-          const isColliding = checkCollision(
-            thisCenter.x,
-            thisCenter.y,
-            anotherCenter.x,
-            anotherCenter.y,
-            this.imgOffsetWidth / 2,
-            anotherBugi.imgOffsetWidth / 2,
-          );
-          if (isColliding && anotherBugi.createdAt !== this.lastCollisionBugi) {
-            const { v1x, v1y, v2x, v2y } = performCollision(
-              thisCenter.x,
-              thisCenter.y,
-              anotherCenter.x,
-              anotherCenter.y,
-              currentVelocity.x,
-              currentVelocity.y,
-              anotherBugi.velocity.x,
-              anotherBugi.velocity.y,
-            );
-            currentVelocity.x = v1x;
-            currentVelocity.y = v1y;
-
-            anotherBugi.velocity.x = v2x;
-            anotherBugi.velocity.y = v2y;
-
-            if (anotherBugi.isWalking) {
-              anotherBugi.stopWalk();
-            }
-            anotherBugi.startInertiaAnimation();
-            this.lastCollisionBugi = anotherBugi.createdAt;
-            anotherBugi.lastCollisionBugi = this.createdAt;
-          }
-        });
+        this.collisionCheckWhileInertiaAnimation(currentVelocity);
 
         let nextLeft = this.position.left + currentVelocity.x * easeFactor;
         let nextTop = this.position.top + currentVelocity.y * easeFactor;
@@ -646,6 +604,58 @@ if (!window.Bugi) {
       this.inertiaRAF = requestAnimationFrame((timestamp) =>
         animate(timestamp, this.velocity),
       );
+    }
+
+    collisionCheckWhileInertiaAnimation(currentVelocity) {
+      let arrayToCheck = [...window.bugiArray, ...window.frenchFriesArray];
+      arrayToCheck.forEach((anotherBugi) => {
+        if (anotherBugi.createdAt === this.createdAt) return;
+        const thisCenter = {
+          x: this.position.left + this.imgOffsetWidth / 2,
+          y: this.position.top + this.imgOffsetHeight / 2,
+        };
+        const anotherCenter = {
+          x: anotherBugi.position.left + anotherBugi.imgOffsetWidth / 2,
+          y: anotherBugi.position.top + anotherBugi.imgOffsetHeight / 2,
+        };
+        const isColliding = checkCollision(
+          thisCenter.x,
+          thisCenter.y,
+          anotherCenter.x,
+          anotherCenter.y,
+          this.imgOffsetWidth / 2,
+          anotherBugi.imgOffsetWidth / 2,
+        );
+        if (isColliding && anotherBugi.createdAt !== this.lastCollisionBugi) {
+          const { v1x, v1y, v2x, v2y } = performCollision(
+            thisCenter.x,
+            thisCenter.y,
+            anotherCenter.x,
+            anotherCenter.y,
+            currentVelocity.x,
+            currentVelocity.y,
+            anotherBugi.velocity.x,
+            anotherBugi.velocity.y,
+          );
+          currentVelocity.x = v1x;
+          currentVelocity.y = v1y;
+
+          anotherBugi.velocity.x = v2x;
+          anotherBugi.velocity.y = v2y;
+
+          if (anotherBugi.isWalking) {
+            anotherBugi.stopWalk();
+          }
+          anotherBugi.startInertiaAnimation();
+          this.lastCollisionBugi = anotherBugi.createdAt;
+          anotherBugi.lastCollisionBugi = this.createdAt;
+
+          return {
+            v1x,
+            v1y,
+          };
+        }
+      });
     }
 
     stopInertiaAnimation() {
