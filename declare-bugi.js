@@ -607,7 +607,9 @@ if (!window.Bugi) {
     }
 
     collisionCheckWhileInertiaAnimation(currentVelocity) {
-      let arrayToCheck = [...window.bugiArray, ...window.frenchFriesArray];
+      const bugiArray = window.bugiArray ?? [];
+      const frenchFriesArray = window.frenchFriesArray ?? [];
+      let arrayToCheck = [...bugiArray, ...frenchFriesArray];
       arrayToCheck.forEach((anotherBugi) => {
         if (anotherBugi.createdAt === this.createdAt) return;
         const thisCenter = {
